@@ -151,7 +151,7 @@ class SSHMCPClient(IMCPClient):
         def configure_ssh(hostname: str, username: str, port: int = 22, password: Optional[str] = None,
                          private_key_path: Optional[str] = None, private_key_content: Optional[str] = None,
                          timeout: int = 30) -> str:
-            """配置SSH连接信息"""
+            """配置新的SSH连接"""
             self.config = SSHConfig(
                 hostname=hostname,
                 username=username,
