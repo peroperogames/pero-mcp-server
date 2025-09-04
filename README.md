@@ -35,7 +35,7 @@ pip install -r requirements.txt
 {
 	"servers": {
 		"pero-mcp-server-local": {
-			"command": "path_to_python",
+			"command": "path/to/python",
 			"args": [
 				"path/to/pero-mcp-server/pero_mcp_server.py"
 			],
@@ -52,11 +52,6 @@ pip install -r requirements.txt
 	}
 }
 ```
-
-> **注意**: 
-> - Windows 用户请将路径中的 `/` 替换为 `\`，并使用 `Scripts\python.exe`
-> - Linux/macOS 用户使用 `bin/python`
-> - 将 `path/to/pero-mcp-server` 替换为你的实际项目路径
 
 ### 远程生产环境配置
 
