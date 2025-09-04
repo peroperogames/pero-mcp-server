@@ -56,11 +56,12 @@ pip install -r requirements.txt
 
 ### 🏠 本地开发环境配置
 
+#### 使用 UVX 运行
 ```json
 {
 	"servers": {
 		"pero-mcp-server-local": {
-			"command": "path/to/python",
+			"command": "python",
 			"args": [
 				"path/to/pero-mcp-server/pero_mcp_server.py"
 			],
@@ -78,8 +79,33 @@ pip install -r requirements.txt
 }
 ```
 
+#### 使用 NPX 运行（推荐）
+```json
+{
+	"servers": {
+		"pero-mcp-server-npx": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@peropero/pero-mcp-server"
+			],
+			"env": {
+				"SSH_HOST": "your_ssh_host",
+				"SSH_USERNAME": "your_ssh_username",
+				"SSH_PORT": "22",
+				"SSH_PASSWORD": "your_ssh_password",
+				"APPSTORE_KEY_ID": "your_appstore_key_id",
+				"APPSTORE_ISSUER_ID": "your_appstore_issuer_id",
+				"APPSTORE_PRIVATE_KEY": "-----BEGIN PRIVATE KEY-----\nyour_private_key_content\n-----END PRIVATE KEY-----"
+			}
+		}
+	}
+}
+```
+
 ### 🌐 远程生产环境配置
 
+#### 使用 UVX 运行
 ```json
 {
 	"servers": {
@@ -104,8 +130,29 @@ pip install -r requirements.txt
 }
 ```
 
-> 🌟 **远程环境说明**:
-> - 🚀 使用 `uvx` 命令从 GitHub 仓库直接运行最新版本
+#### 使用 NPX 运行
+```json
+{
+	"servers": {
+		"pero-mcp-server-remote-npx": {
+			"command": "npx",
+			"args": [
+				"--from",
+				"git+https://github.com/peroperogames/pero-mcp-server"
+			],
+			"env": {
+				"SSH_HOST": "your_production_ssh_host",
+				"SSH_USERNAME": "your_ssh_username",
+				"SSH_PORT": "22",
+				"SSH_PASSWORD": "your_ssh_password",
+				"APPSTORE_KEY_ID": "your_appstore_key_id",
+				"APPSTORE_ISSUER_ID": "your_appstore_issuer_id",
+				"APPSTORE_PRIVATE_KEY": "-----BEGIN PRIVATE KEY-----\nyour_private_key_content\n-----END PRIVATE KEY-----"
+			}
+		}
+	}
+}
+```
 > - 🔄 无需本地安装和配置，自动获取最新代码
 > - 🏭 适合生产环境或团队协作使用
 
@@ -505,6 +552,6 @@ async def your_tool(self, arguments: dict) -> list[types.TextContent]:
 
 ---
 
-*Made with ❤️ by Pero Games*
+*Made with ❤️ by peropero*
 
 </div>

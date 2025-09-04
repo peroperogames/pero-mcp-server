@@ -1,0 +1,45 @@
+{
+  "name": "@peropero/pero-mcp-server",
+  "version": "0.0.0",
+  "description": "pero-mcp-server is a server implementation of the Model Context Protocol (MCP)",
+  "main": "index.js",
+  "bin": {
+    "pero-mcp-server": "bin/pero-mcp-server"
+  },
+  "scripts": {
+    "start": "node bin/pero-mcp-server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/peroperogames/pero-mcp-server.git"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "app-store-connect",
+    "ssh",
+    "automation",
+    "api",
+    "server"
+  ],
+  "author": "peropero <tech@peropero.net>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/peroperogames/pero-mcp-server/issues"
+  },
+  "homepage": "https://github.com/peroperogames/pero-mcp-server#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "files": [
+    "bin/",
+    "*.py",
+    "clients/",
+    "requirements.txt",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
