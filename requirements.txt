@@ -1,0 +1,8 @@
+fastmcp
+paramiko
+requests
+cryptography
+pydantic
+python-dotenv
+PyJWT
+typing-extensions
