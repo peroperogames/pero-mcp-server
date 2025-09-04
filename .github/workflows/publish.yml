@@ -1,4 +1,4 @@
-name: Publish to NPM
+name: Publish to NPM and GitHub Packages
 
 on:
   push:
@@ -12,8 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
+      contents: write
       id-token: write
+      packages: write
 
     steps:
       - name: Checkout code
@@ -21,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: Setup Node.js for NPM
         uses: actions/setup-node@v4
         with:
           node-version: '18'
@@ -37,7 +38,73 @@ jobs:
           echo "Setting version to: $VERSION"
           npm version $VERSION --no-git-tag-version
 
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION=$(echo ${GITHUB_REF#refs/tags/} | sed 's/^v//')
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          
+          # 生成发布说明
+          cat > release_notes.md << EOF
+          ## 🚀 Release $VERSION
+          
+          ### 📦 Package Information
+          - **NPM Package**: \`@peropero/pero-mcp-server@$VERSION\`
+          - **GitHub Package**: Available at GitHub Packages
+          
+          ### 📥 Installation
+          \`\`\`bash
+          # From NPM
+          npm install @peropero/pero-mcp-server@$VERSION
+          
+          # From GitHub Packages
+          npm install @peropero/pero-mcp-server@$VERSION --registry=https://npm.pkg.github.com
+          \`\`\`
+          
+          ### 🔄 Changes
+          $(git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD 2>/dev/null || echo "- Initial release")
+          
+          ### 🛠️ Technical Details
+          - Node.js version: 18+
+          - License: MIT
+          - Repository: [pero-mcp-server](https://github.com/peroperogames/pero-mcp-server)
+          EOF
+          
+          echo "Generated release notes:"
+          cat release_notes.md
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Release ${{ steps.release_notes.outputs.VERSION }} 🎉"
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish to NPM
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Setup Node.js for GitHub Packages
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Post-publish summary
+        run: |
+          VERSION=$(echo ${GITHUB_REF#refs/tags/} | sed 's/^v//')
+          echo "✅ Successfully published version $VERSION to:"
+          echo "📦 NPM: https://www.npmjs.com/package/@peropero/pero-mcp-server"
+          echo "📦 GitHub Packages: https://github.com/peroperogames/pero-mcp-server/packages"
+          echo "🎉 GitHub Release: https://github.com/peroperogames/pero-mcp-server/releases/tag/v$VERSION"
