@@ -1,4 +1,4 @@
-name: Publish to NPM and GitHub Packages
+name: Create GitHub Release
 
 on:
   push:
@@ -8,35 +8,17 @@ on:
     types: [published]
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
 
     permissions:
       contents: write
-      id-token: write
-      packages: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Setup Node.js for NPM
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Update version from tag
-        run: |
-          # 从git tag获取版本号
-          VERSION=$(echo ${GITHUB_REF#refs/tags/} | sed 's/^v//')
-          echo "Setting version to: $VERSION"
-          npm version $VERSION --no-git-tag-version
 
       - name: Generate release notes
         id: release_notes
@@ -48,26 +30,50 @@ jobs:
           cat > release_notes.md << EOF
           ## 🚀 Release $VERSION
           
-          ### 📦 Package Information
-          - **NPM Package**: \`@peropero/pero-mcp-server@$VERSION\`
-          - **GitHub Package**: Available at GitHub Packages
-          
-          ### 📥 Installation
+          ### 📦 Installation
           \`\`\`bash
-          # From NPM
-          npm install @peropero/pero-mcp-server@$VERSION
+          # Using uvx (recommended)
+          uvx --from git+https://github.com/peroperogames/pero-mcp-server main
           
-          # From GitHub Packages
-          npm install @peropero/pero-mcp-server@$VERSION --registry=https://npm.pkg.github.com
+          # Or clone and run locally
+          git clone https://github.com/peroperogames/pero-mcp-server.git
+          cd pero-mcp-server
+          pip install -r requirements.txt
+          python __main__.py
           \`\`\`
           
           ### 🔄 Changes
           $(git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD 2>/dev/null || echo "- Initial release")
           
           ### 🛠️ Technical Details
-          - Node.js version: 18+
+          - Python version: 3.8+
           - License: MIT
           - Repository: [pero-mcp-server](https://github.com/peroperogames/pero-mcp-server)
+          
+          ### 📋 MCP Client Configuration
+          \`\`\`json
+          {
+            "servers": {
+              "pero-mcp-server": {
+                "command": "uvx",
+                "args": [
+                  "--from",
+                  "git+https://github.com/peroperogames/pero-mcp-server@v$VERSION",
+                  "main"
+                ],
+                "env": {
+                  "SSH_HOST": "your_ssh_host",
+                  "SSH_USERNAME": "your_username",
+                  "SSH_PORT": "22",
+                  "SSH_PASSWORD": "your_password",
+                  "APPSTORE_KEY_ID": "your_key_id",
+                  "APPSTORE_ISSUER_ID": "your_issuer_id",
+                  "APPSTORE_PRIVATE_KEY": "your_private_key"
+                }
+              }
+            }
+          }
+          \`\`\`
           EOF
           
           echo "Generated release notes:"
@@ -85,26 +91,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish to NPM
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Setup Node.js for GitHub Packages
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          registry-url: 'https://npm.pkg.github.com'
-
-      - name: Publish to GitHub Packages
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Post-publish summary
+      - name: Post-release summary
         run: |
           VERSION=$(echo ${GITHUB_REF#refs/tags/} | sed 's/^v//')
-          echo "✅ Successfully published version $VERSION to:"
-          echo "📦 NPM: https://www.npmjs.com/package/@peropero/pero-mcp-server"
-          echo "📦 GitHub Packages: https://github.com/peroperogames/pero-mcp-server/packages"
-          echo "🎉 GitHub Release: https://github.com/peroperogames/pero-mcp-server/releases/tag/v$VERSION"
+          echo "✅ Successfully created GitHub Release v$VERSION"
+          echo "🎉 Release URL: https://github.com/peroperogames/pero-mcp-server/releases/tag/v$VERSION"
+          echo ""
+          echo "🚀 Installation command:"
+          echo "uvx --from git+https://github.com/peroperogames/pero-mcp-server@v$VERSION main"

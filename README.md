@@ -72,7 +72,6 @@ MCP 服务器支持多种传输方式，可以通过以下参数进行配置：
 
 ### 🏠 本地开发环境配置
 
-#### 使用 python 运行
 ```json
 {
 	"servers": {
@@ -95,32 +94,9 @@ MCP 服务器支持多种传输方式，可以通过以下参数进行配置：
 }
 ```
 
-#### 使用 node 运行
-```json
-{
-	"servers": {
-		"pero-mcp-server-npx": {
-			"command": "node",
-			"args": [
-				"path/to/pero-mcp-server"
-			],
-			"env": {
-				"SSH_HOST": "your_ssh_host",
-				"SSH_USERNAME": "your_ssh_username",
-				"SSH_PORT": "22",
-				"SSH_PASSWORD": "your_ssh_password",
-				"APPSTORE_KEY_ID": "your_appstore_key_id",
-				"APPSTORE_ISSUER_ID": "your_appstore_issuer_id",
-				"APPSTORE_PRIVATE_KEY": "-----BEGIN PRIVATE KEY-----\nyour_private_key_content\n-----END PRIVATE KEY-----"
-			}
-		}
-	}
-}
-```
 
 ### 🌐 远程生产环境配置
 
-#### 使用 uvx 运行
 ```json
 {
 	"servers": {
@@ -128,7 +104,8 @@ MCP 服务器支持多种传输方式，可以通过以下参数进行配置：
 			"command": "uvx",
 			"args": [
 				"--from",
-				"git+https://github.com/peroperogames/pero-mcp-server"
+				"git+https://github.com/peroperogames/pero-mcp-server",
+				"main"
 			],
 			"env": {
 				"SSH_HOST": "your_production_ssh_host",
@@ -144,29 +121,6 @@ MCP 服务器支持多种传输方式，可以通过以下参数进行配置：
 }
 ```
 
-#### 使用 npx 运行
-```json
-{
-	"servers": {
-		"pero-mcp-server-remote-npx": {
-			"command": "npx",
-			"args": [
-				"-y",
-				"@peropero/pero-mcp-server"
-			],
-			"env": {
-				"SSH_HOST": "your_production_ssh_host",
-				"SSH_USERNAME": "your_ssh_username",
-				"SSH_PORT": "22",
-				"SSH_PASSWORD": "your_ssh_password",
-				"APPSTORE_KEY_ID": "your_appstore_key_id",
-				"APPSTORE_ISSUER_ID": "your_appstore_issuer_id",
-				"APPSTORE_PRIVATE_KEY": "-----BEGIN PRIVATE KEY-----\nyour_private_key_content\n-----END PRIVATE KEY-----"
-			}
-		}
-	}
-}
-```
 > - 🔄 无需本地安装和配置，自动获取最新代码
 > - 🏭 适合生产环境或团队协作使用
 

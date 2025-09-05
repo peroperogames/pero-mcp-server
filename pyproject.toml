@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pero-mcp-server"
 dynamic = ["version"]
-description = "A comprehensive MCP (Model Context Protocol) server supporting App Store Connect and SSH operations"
+description = "pero-mcp-server is a server implementation of the Model Context Protocol (MCP)"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
@@ -27,6 +27,9 @@ dependencies = [
     "PyJWT",
     "typing-extensions",
 ]
+
+[project.scripts]
+main = "__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/peroperogames/pero-mcp-server"
