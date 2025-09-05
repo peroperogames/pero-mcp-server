@@ -4,8 +4,8 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-// 获取项目根目录
-const projectRoot = path.dirname(__dirname);
+// 获取项目根目录（现在就是当前目录）
+const projectRoot = __dirname;
 
 // 检查 Python 是否安装
 function checkPython() {
@@ -50,10 +50,10 @@ async function installDependencies(pythonCmd) {
 
 // 启动 Python 服务器
 async function startServer(pythonCmd) {
-  const serverPath = path.join(projectRoot, 'pero_mcp_server.py');
+  const args = process.argv.slice(2);
 
   console.log('Starting Pero MCP Server...');
-  const server = spawn(pythonCmd, [serverPath], {
+  const server = spawn(pythonCmd, ['./', ...args], {
     stdio: 'inherit',
     cwd: projectRoot,
     env: { ...process.env }

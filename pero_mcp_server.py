@@ -36,7 +36,8 @@ class PeroMCPServer:
         if client_classes:
             self.register_clients(client_classes)
 
-    def discover_mcp_clients(self) -> List[Type[IMCPClient]]:
+    @classmethod
+    def discover_mcp_clients(cls) -> List[Type[IMCPClient]]:
         """自动发现所有MCP客户端类"""
         client_classes = []
 
@@ -180,12 +181,3 @@ class PeroMCPServer:
 
         # 启动服务器
         server.run(transport, host, port)
-
-
-def main():
-    """主入口函数"""
-    PeroMCPServer.create_and_run()
-
-
-if __name__ == '__main__':
-    main()

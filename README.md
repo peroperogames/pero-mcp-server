@@ -54,16 +54,32 @@ pip install -r requirements.txt
 
 在你的 MCP 客户端（如 Claude Desktop）配置文件中添加以下配置：
 
+### 📡 传输方式配置说明
+
+MCP 服务器支持多种传输方式，可以通过以下参数进行配置：
+
+<summary>🔧 传输参数说明</summary>
+
+| 参数名 | 描述              | 默认值       | 示例                       |
+|--------|-----------------|-----------|--------------------------|
+| `transport` | 传输协议类型          | `stdio`   | `stdio`, `http`          |
+| `host` | 服务器主机地址（HTTP模式） | `0.0.0.0` | `127.0.0.1`, `localhost` |
+| `port` | 服务器端口（HTTP模式）   | `8000`    | `8000`, `8080`           |
+
+**📋 传输方式说明：**
+- 🔤 **stdio** (默认)：标准输入输出方式，适合本地开发和测试
+- 🌐 **http**：streamable-http 方式，适合网络通信和远程访问
+
 ### 🏠 本地开发环境配置
 
-#### 使用 UVX 运行
+#### 使用 python 运行
 ```json
 {
 	"servers": {
 		"pero-mcp-server-local": {
 			"command": "python",
 			"args": [
-				"path/to/pero-mcp-server/pero_mcp_server.py"
+				"path/to/pero-mcp-server"
 			],
 			"env": {
 				"SSH_HOST": "your_ssh_host",
@@ -79,15 +95,14 @@ pip install -r requirements.txt
 }
 ```
 
-#### 使用 NPX 运行（推荐）
+#### 使用 node 运行
 ```json
 {
 	"servers": {
 		"pero-mcp-server-npx": {
-			"command": "npx",
+			"command": "node",
 			"args": [
-				"-y",
-				"@peropero/pero-mcp-server"
+				"path/to/pero-mcp-server"
 			],
 			"env": {
 				"SSH_HOST": "your_ssh_host",
@@ -105,7 +120,7 @@ pip install -r requirements.txt
 
 ### 🌐 远程生产环境配置
 
-#### 使用 UVX 运行
+#### 使用 uvx 运行
 ```json
 {
 	"servers": {
@@ -113,8 +128,7 @@ pip install -r requirements.txt
 			"command": "uvx",
 			"args": [
 				"--from",
-				"git+https://github.com/peroperogames/pero-mcp-server",
-				"pero-mcp-server"
+				"git+https://github.com/peroperogames/pero-mcp-server"
 			],
 			"env": {
 				"SSH_HOST": "your_production_ssh_host",
@@ -130,15 +144,15 @@ pip install -r requirements.txt
 }
 ```
 
-#### 使用 NPX 运行
+#### 使用 npx 运行
 ```json
 {
 	"servers": {
 		"pero-mcp-server-remote-npx": {
 			"command": "npx",
 			"args": [
-				"--from",
-				"git+https://github.com/peroperogames/pero-mcp-server"
+				"-y",
+				"@peropero/pero-mcp-server"
 			],
 			"env": {
 				"SSH_HOST": "your_production_ssh_host",
@@ -270,10 +284,10 @@ pero-mcp-server/
 2. **🐍 创建虚拟环境**
    ```bash
    python -m venv .venv
-   
+
    # Windows
    .venv\Scripts\activate
-   
+
    # Linux/macOS
    source .venv/bin/activate
    ```
@@ -354,58 +368,58 @@ import mcp.types as types
 
 class YourNewMCPClient(IMCPClient):
     """你的新功能客户端"""
-    
+
     def __init__(self):
         """初始化客户端"""
         # 初始化你的客户端状态
         pass
-    
+
     def register_tools(self, mcp: Any) -> None:
         """注册工具到FastMCP实例"""
-        
+
         @mcp.tool()
         async def your_new_tool(arguments: dict) -> list[types.TextContent]:
             """
             你的新工具描述
-            
+
             Args:
                 arguments: 工具参数字典
-                
+
             Returns:
                 工具执行结果
             """
             # 实现你的工具逻辑
             result = await self._execute_your_logic(arguments)
             return [types.TextContent(type="text", text=result)]
-    
+
     def register_resources(self, mcp: Any) -> None:
         """注册资源到FastMCP实例"""
-        
+
         @mcp.resource("your_scheme://your_resource")
         async def read_your_resource(uri: str) -> str:
             """
             读取你的资源
-            
+
             Args:
                 uri: 资源URI
-                
+
             Returns:
                 资源内容
             """
             # 处理资源读取逻辑
             return await self._read_resource_content(uri)
-    
+
     def register_prompts(self, mcp: Any) -> None:
         """注册提示模板到FastMCP实例"""
-        
+
         @mcp.prompt()
         async def your_prompt_template(arguments: dict) -> types.PromptMessage:
             """
             你的提示模板
-            
+
             Args:
                 arguments: 提示参数
-                
+
             Returns:
                 提示消息
             """
@@ -415,17 +429,17 @@ class YourNewMCPClient(IMCPClient):
                 role="user",
                 content=types.TextContent(type="text", text=content)
             )
-    
+
     async def _execute_your_logic(self, arguments: dict) -> str:
         """实现你的具体业务逻辑"""
         # 在这里实现你的功能逻辑
         pass
-    
+
     async def _read_resource_content(self, uri: str) -> str:
         """读取资源内容的具体实现"""
         # 在这里实现资源读取逻辑
         pass
-    
+
     async def _generate_prompt_content(self, arguments: dict) -> str:
         """生成提示内容的具体实现"""
         # 在这里实现提示生成逻辑
