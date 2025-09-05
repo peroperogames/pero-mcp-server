@@ -181,3 +181,87 @@ class PeroMCPServer:
 
         # 启动服务器
         server.run(transport, host, port)
+
+
+def main():
+    """主函数 - 包入口点"""
+    import sys
+    import argparse
+
+    def parse_args():
+        """解析命令行参数"""
+        parser = argparse.ArgumentParser(
+            description="Pero MCP Server",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+使用示例:
+  pero-mcp-server                           # 使用STDIO模式启动（默认）
+  pero-mcp-server --transport http          # 使用HTTP模式启动
+  pero-mcp-server --http --port 8080        # 使用HTTP模式在8080端口启动
+  pero-mcp-server --name "我的服务器"        # 自定义服务器名称
+            """
+        )
+
+        parser.add_argument(
+            "--name", "-n",
+            default="Pero MCP Server",
+            help="服务器名称 (默认: Pero MCP Server)"
+        )
+
+        parser.add_argument(
+            "--transport", "-t",
+            choices=["stdio", "http"],
+            default="stdio",
+            help="传输方式 (默认: stdio)"
+        )
+
+        parser.add_argument(
+            "--http",
+            action="store_const",
+            const="http",
+            dest="transport",
+            help="使用HTTP传输模式 (等同于 --transport http)"
+        )
+
+        parser.add_argument(
+            "--host",
+            default="0.0.0.0",
+            help="HTTP服务器主机地址 (默认: 0.0.0.0，仅HTTP模式有效)"
+        )
+
+        parser.add_argument(
+            "--port", "-p",
+            type=int,
+            default=8000,
+            help="HTTP服务器端口 (默认: 8000，仅HTTP模式有效)"
+        )
+
+        return parser.parse_args()
+
+    args = parse_args()
+
+    print(f"=== {args.name} ===")
+    print(f"传输方式: {args.transport.upper()}")
+
+    if args.transport == "http":
+        print(f"服务地址: http://{args.host}:{args.port}")
+
+    print("-" * 50)
+
+    try:
+        # 创建并启动服务器
+        PeroMCPServer.create_and_run(
+            name=args.name,
+            transport=args.transport,
+            host=args.host,
+            port=args.port
+        )
+    except KeyboardInterrupt:
+        print("\n服务器已停止")
+    except Exception as e:
+        print(f"服务器启动失败: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

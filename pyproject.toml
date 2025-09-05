@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [project.scripts]
-pero-mcp-server = "__main__:main"
+pero-mcp-server = "pero_mcp_server:main"
 
 [project.urls]
 Homepage = "https://github.com/peroperogames/pero-mcp-server"
@@ -39,4 +39,4 @@ Repository = "https://github.com/peroperogames/pero-mcp-server"
 
 [tool.setuptools]
 packages = ["clients", "clients.appstoreconnect", "clients.ssh"]
-py-modules = ["pero_mcp_server", "__main__"]
+py-modules = ["pero_mcp_server"]
