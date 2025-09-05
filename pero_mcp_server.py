@@ -12,7 +12,7 @@ from fastmcp import FastMCP
 from clients.i_mcp_client import IMCPClient
 
 class PeroMCPServer:
-    """Pero MCP Server - FastMCP 中转站，支持依赖注入"""
+    """Pero MCP Server - FastMCP，支持依赖注入"""
 
     def __init__(self, name: str = "Pero MCP Server", client_classes: List[Type[IMCPClient]] = None, auto_discover: bool = True):
         """初始化 Pero MCP Server
