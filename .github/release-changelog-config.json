@@ -1,0 +1,90 @@
+{
+  "categories": [
+    {
+      "title": "## 🚀 新功能",
+      "labels": ["feature", "enhancement", "feat"]
+    },
+    {
+      "title": "## 🐛 Bug修复",
+      "labels": ["bug", "fix", "bugfix"]
+    },
+    {
+      "title": "## 🔧 改进和重构",
+      "labels": ["refactor", "improvement", "optimize", "perf"]
+    },
+    {
+      "title": "## 📚 文档更新",
+      "labels": ["documentation", "docs"]
+    },
+    {
+      "title": "## 🔨 构建和CI/CD",
+      "labels": ["build", "ci", "cd", "workflow"]
+    },
+    {
+      "title": "## 🧪 测试",
+      "labels": ["test", "testing"]
+    },
+    {
+      "title": "## 📦 依赖更新",
+      "labels": ["dependencies", "deps"]
+    },
+    {
+      "title": "## 🏗️ 其他变更",
+      "labels": ["chore", "misc"]
+    }
+  ],
+  "ignore_labels": [
+    "ignore-for-release"
+  ],
+  "sort": "ASC",
+  "template": "#{{CHANGELOG}}\n\n<details>\n<summary>🔍 完整变更历史</summary>\n\n#{{UNCATEGORIZED}}\n\n</details>",
+  "pr_template": "- #{{TITLE}} ##{{NUMBER}}",
+  "empty_template": "- 无重大变更",
+  "label_extractor": [
+    {
+      "pattern": "^(feat|feature)(\\(.+\\))?!?:",
+      "target": "feature"
+    },
+    {
+      "pattern": "^(fix|bugfix)(\\(.+\\))?!?:",
+      "target": "bug"
+    },
+    {
+      "pattern": "^(refactor|perf|improve)(\\(.+\\))?!?:",
+      "target": "refactor"
+    },
+    {
+      "pattern": "^(docs?|documentation)(\\(.+\\))?!?:",
+      "target": "documentation"
+    },
+    {
+      "pattern": "^(build|ci|cd)(\\(.+\\))?!?:",
+      "target": "build"
+    },
+    {
+      "pattern": "^(test|testing)(\\(.+\\))?!?:",
+      "target": "test"
+    },
+    {
+      "pattern": "^(chore|misc)(\\(.+\\))?!?:",
+      "target": "chore"
+    }
+  ],
+  "transformers": [
+    {
+      "pattern": "\\[(.+)\\]",
+      "target": "**$1**"
+    }
+  ],
+  "max_tags_to_fetch": 200,
+  "max_pull_requests": 200,
+  "max_back_track_time_days": 365,
+  "exclude_merge_branches": [
+    "main",
+    "master"
+  ],
+  "tag_resolver": {
+    "method": "semver"
+  }
+}
+

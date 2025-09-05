@@ -13,6 +13,7 @@ jobs:
 
     permissions:
       contents: write
+      pull-requests: read
 
     steps:
       - name: Checkout code
@@ -20,37 +21,221 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Generate release notes
+      - name: Generate AI-powered release notes
         id: release_notes
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          configuration: ".github/release-changelog-config.json"
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Smart code analysis and changelog generation
+        id: smart_analysis
         run: |
           VERSION=$(echo ${GITHUB_REF#refs/tags/} | sed 's/^v//')
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           
-          # 生成发布说明
+          # 获取上一个标签
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          echo "🤖 开始智能分析 Release v$VERSION..."
+          
+          # 初始化变量
+          SMART_SUMMARY=""
+          FILES_CHANGED=0
+          INSERTIONS=0
+          DELETIONS=0
+          FEATURES=""
+          FIXES=""
+          IMPROVEMENTS=""
+          BREAKING_CHANGES=""
+          DOCS=""
+
+          if [ ! -z "$PREVIOUS_TAG" ]; then
+            echo "📊 分析从 $PREVIOUS_TAG 到 v$VERSION 的变更..."
+            
+            # 获取详细统计
+            FILES_CHANGED=$(git diff --name-only $PREVIOUS_TAG..HEAD | wc -l)
+            STAT_OUTPUT=$(git diff --shortstat $PREVIOUS_TAG..HEAD)
+            INSERTIONS=$(echo "$STAT_OUTPUT" | grep -o '[0-9]\+ insertion' | grep -o '[0-9]\+' || echo "0")
+            DELETIONS=$(echo "$STAT_OUTPUT" | grep -o '[0-9]\+ deletion' | grep -o '[0-9]\+' || echo "0")
+            
+            # 分析文件类型变更
+            PYTHON_COUNT=$(git diff --name-only $PREVIOUS_TAG..HEAD | grep '\.py$' | wc -l)
+            CONFIG_COUNT=$(git diff --name-only $PREVIOUS_TAG..HEAD | grep -E '\.(yml|yaml|json|toml)$' | wc -l)
+            DOC_COUNT=$(git diff --name-only $PREVIOUS_TAG..HEAD | grep -E '\.(md|rst|txt)$' | wc -l)
+            
+            # 智能分析提交消息
+            ALL_COMMITS=$(git log --pretty=format:"%s" $PREVIOUS_TAG..HEAD)
+            
+            # 分类提交消息
+            FEATURES=$(echo "$ALL_COMMITS" | grep -E "^(feat|feature|add|implement|新增|添加)" | head -10)
+            FIXES=$(echo "$ALL_COMMITS" | grep -E "^(fix|bug|patch|resolve|修复|解决)" | head -10)
+            IMPROVEMENTS=$(echo "$ALL_COMMITS" | grep -E "^(improve|enhance|optimize|refactor|update|优化|改进|重构)" | head -10)
+            BREAKING_CHANGES=$(echo "$ALL_COMMITS" | grep -E "(BREAKING|!:|major|重大变更)" | head -5)
+            DOCS=$(echo "$ALL_COMMITS" | grep -E "^(docs|doc|documentation|readme|文档)" | head -10)
+            
+            # 生成智能摘要
+            FEATURE_COUNT=$(echo "$FEATURES" | grep -v '^$' | wc -l)
+            FIX_COUNT=$(echo "$FIXES" | grep -v '^$' | wc -l)
+            IMP_COUNT=$(echo "$IMPROVEMENTS" | grep -v '^$' | wc -l)
+            BREAK_COUNT=$(echo "$BREAKING_CHANGES" | grep -v '^$' | wc -l)
+            
+            if [ $BREAK_COUNT -gt 0 ]; then
+              SMART_SUMMARY="⚠️ 包含 $BREAK_COUNT 个重大变更"
+            fi
+            
+            if [ $FEATURE_COUNT -gt 0 ]; then
+              if [ ! -z "$SMART_SUMMARY" ]; then
+                SMART_SUMMARY="$SMART_SUMMARY，新增 $FEATURE_COUNT 个功能"
+              else
+                SMART_SUMMARY="新增 $FEATURE_COUNT 个功能特性"
+              fi
+            fi
+            
+            if [ $FIX_COUNT -gt 0 ]; then
+              if [ ! -z "$SMART_SUMMARY" ]; then
+                SMART_SUMMARY="$SMART_SUMMARY，修复 $FIX_COUNT 个问题"
+              else
+                SMART_SUMMARY="修复 $FIX_COUNT 个问题"
+              fi
+            fi
+            
+            if [ $IMP_COUNT -gt 0 ]; then
+              if [ ! -z "$SMART_SUMMARY" ]; then
+                SMART_SUMMARY="$SMART_SUMMARY，包含 $IMP_COUNT 项改进"
+              else
+                SMART_SUMMARY="包含 $IMP_COUNT 项代码改进"
+              fi
+            fi
+            
+            # 如果没有分类到的提交，使用通用描述
+            if [ -z "$SMART_SUMMARY" ]; then
+              COMMIT_COUNT=$(echo "$ALL_COMMITS" | wc -l)
+              SMART_SUMMARY="包含 $COMMIT_COUNT 个提交的常规更新"
+            fi
+            
+            echo "🎯 智能分析完成："
+            echo "  - 文件变更: $FILES_CHANGED"
+            echo "  - Python文件: $PYTHON_COUNT"
+            echo "  - 配置文件: $CONFIG_COUNT" 
+            echo "  - 文档文件: $DOC_COUNT"
+            echo "  - 功能: $FEATURE_COUNT, 修复: $FIX_COUNT, 改进: $IMP_COUNT"
+            
+          else
+            # 首次发布
+            SMART_SUMMARY="🎉 首次发布完整的MCP服务器实现"
+            FILES_CHANGED=$(find . -name "*.py" -o -name "*.yml" -o -name "*.yaml" -o -name "*.json" -o -name "*.md" | grep -v __pycache__ | wc -l)
+            FEATURES="完整的MCP服务器框架实现
+          SSH客户端支持和连接管理
+          App Store Connect API集成
+          灵活的配置化架构"
+            DOCS="完整的README文档和使用说明
+          详细的API文档和示例
+          MCP客户端配置指南"
+          fi
+          
+          # 生成最终的发布说明
           cat > release_notes.md << EOF
           ## 🚀 Release $VERSION
           
-          ### 📦 Installation
-          \`\`\`bash
-          # Using uvx (recommended)
-          uvx --from git+https://github.com/peroperogames/pero-mcp-server main
+          ### 🤖 智能摘要
+          $SMART_SUMMARY
           
-          # Or clone and run locally
+          ### 📊 发布统计
+          - 📁 **变更文件**: $FILES_CHANGED 个
+          - ➕ **新增代码**: $INSERTIONS 行
+          - ➖ **删除代码**: $DELETIONS 行
+          - 🐍 **Python文件**: $PYTHON_COUNT 个
+          - ⚙️ **配置文件**: $CONFIG_COUNT 个
+          - 📚 **文档文件**: $DOC_COUNT 个
+          
+          ### ✨ 新功能特性
+          EOF
+          
+          if [ ! -z "$FEATURES" ] && [ "$FEATURES" != " " ]; then
+            echo "$FEATURES" | while read -r line; do
+              if [ ! -z "$line" ]; then
+                echo "- $line" >> release_notes.md
+              fi
+            done
+          else
+            echo "- 本版本无新功能特性" >> release_notes.md
+          fi
+          
+          cat >> release_notes.md << EOF
+          
+          ### 🐛 问题修复
+          EOF
+          
+          if [ ! -z "$FIXES" ] && [ "$FIXES" != " " ]; then
+            echo "$FIXES" | while read -r line; do
+              if [ ! -z "$line" ]; then
+                echo "- $line" >> release_notes.md
+              fi
+            done
+          else
+            echo "- 本版本无问题修复" >> release_notes.md
+          fi
+          
+          cat >> release_notes.md << EOF
+          
+          ### 🔧 改进优化
+          EOF
+          
+          if [ ! -z "$IMPROVEMENTS" ] && [ "$IMPROVEMENTS" != " " ]; then
+            echo "$IMPROVEMENTS" | while read -r line; do
+              if [ ! -z "$line" ]; then
+                echo "- $line" >> release_notes.md
+              fi
+            done
+          else
+            echo "- 本版本无改进优化" >> release_notes.md
+          fi
+          
+          # 添加重大变更（如果有）
+          if [ ! -z "$BREAKING_CHANGES" ] && [ "$BREAKING_CHANGES" != " " ]; then
+            cat >> release_notes.md << EOF
+          
+          ### ⚠️ 重大变更
+          EOF
+            echo "$BREAKING_CHANGES" | while read -r line; do
+              if [ ! -z "$line" ]; then
+                echo "- $line" >> release_notes.md
+              fi
+            done
+          fi
+          
+          cat >> release_notes.md << EOF
+          
+          ### 📚 文档更新
+          EOF
+          
+          if [ ! -z "$DOCS" ] && [ "$DOCS" != " " ]; then
+            echo "$DOCS" | while read -r line; do
+              if [ ! -z "$line" ]; then
+                echo "- $line" >> release_notes.md
+              fi
+            done
+          else
+            echo "- 本版本无文档更新" >> release_notes.md
+          fi
+          
+          cat >> release_notes.md << EOF
+          
+          ### 📦 快速安装
+          \`\`\`bash
+          # 推荐使用 uvx（最新版本）
+          uvx --from git+https://github.com/peroperogames/pero-mcp-server@v$VERSION pero-mcp-server
+          
+          # 或者克隆到本地运行
           git clone https://github.com/peroperogames/pero-mcp-server.git
           cd pero-mcp-server
+          git checkout v$VERSION
           pip install -r requirements.txt
           python __main__.py
           \`\`\`
           
-          ### 🔄 Changes
-          $(git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD 2>/dev/null || echo "- Initial release")
-          
-          ### 🛠️ Technical Details
-          - Python version: 3.8+
-          - License: MIT
-          - Repository: [pero-mcp-server](https://github.com/peroperogames/pero-mcp-server)
-          
-          ### 📋 MCP Client Configuration
+          ### 🔧 MCP客户端配置
           \`\`\`json
           {
             "servers": {
@@ -59,11 +244,11 @@ jobs:
                 "args": [
                   "--from",
                   "git+https://github.com/peroperogames/pero-mcp-server@v$VERSION",
-                  "main"
+                  "pero-mcp-server"
                 ],
                 "env": {
                   "SSH_HOST": "your_ssh_host",
-                  "SSH_USERNAME": "your_username",
+                  "SSH_USERNAME": "your_username", 
                   "SSH_PORT": "22",
                   "SSH_PASSWORD": "your_password",
                   "APPSTORE_KEY_ID": "your_key_id",
@@ -74,28 +259,60 @@ jobs:
             }
           }
           \`\`\`
+          
+          ### 🛠️ 技术规格
+          - **Python版本**: 3.8+
+          - **协议支持**: Model Context Protocol (MCP)
+          - **API集成**: SSH, App Store Connect
+          - **许可证**: MIT
+          - **仓库**: [pero-mcp-server](https://github.com/peroperogames/pero-mcp-server)
+          
+          ### 📈 路线图
+          - 继续优化性能和稳定性
+          - 扩展更多API集成选项
+          - 改进错误处理和日志记录
+          - 添加更多灵活的配置选项
+          
+          ---
+          
+          **完整变更日志**: [\`$PREVIOUS_TAG..v$VERSION\`](https://github.com/peroperogames/pero-mcp-server/compare/$PREVIOUS_TAG...v$VERSION)
           EOF
           
-          echo "Generated release notes:"
+          echo "✅ 生成的AI增强发布说明:"
+          echo "===================="
           cat release_notes.md
+          echo "===================="
 
       - name: Create GitHub Release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          name: "Release ${{ steps.release_notes.outputs.VERSION }} 🎉"
+          name: "🎉 Release ${{ steps.smart_analysis.outputs.VERSION }}"
           body_path: release_notes.md
           draft: false
           prerelease: false
           make_latest: true
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Post-release summary
+      - name: Release completion summary
         run: |
           VERSION=$(echo ${GITHUB_REF#refs/tags/} | sed 's/^v//')
-          echo "✅ Successfully created GitHub Release v$VERSION"
-          echo "🎉 Release URL: https://github.com/peroperogames/pero-mcp-server/releases/tag/v$VERSION"
+          echo "🎊 ===== 🤖 AI增强发布完成 ===== 🎊"
           echo ""
-          echo "🚀 Installation command:"
-          echo "uvx --from git+https://github.com/peroperogames/pero-mcp-server@v$VERSION main"
+          echo "✅ 成功创建 GitHub Release v$VERSION"
+          echo "🔗 发布页面: https://github.com/peroperogames/pero-mcp-server/releases/tag/v$VERSION"
+          echo ""
+          echo "🚀 一键安装命令:"
+          echo "uvx --from git+https://github.com/peroperogames/pero-mcp-server@v$VERSION pero-mcp-server"
+          echo ""
+          echo "🎯 本次发布的AI增强功能:"
+          echo "  📊 智能代码统计和分析"
+          echo "  🏷️ 自动提交消息分类"
+          echo "  📝 结构化变更说明生成"
+          echo "  🔍 文件类型变更分析"
+          echo "  📈 详细的发布统计数据"
+          echo "  ⚡ 完全自动化的发布流程"
+          echo ""
+          echo "🎉 享受您的新版本发布吧！"

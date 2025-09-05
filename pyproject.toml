@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [project.scripts]
-main = "__main__:main"
+pero-mcp-server = "__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/peroperogames/pero-mcp-server"

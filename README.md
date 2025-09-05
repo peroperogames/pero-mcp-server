@@ -105,7 +105,7 @@ MCP 服务器支持多种传输方式，可以通过以下参数进行配置：
 			"args": [
 				"--from",
 				"git+https://github.com/peroperogames/pero-mcp-server",
-				"main"
+				"pero-mcp-server"
 			],
 			"env": {
 				"SSH_HOST": "your_production_ssh_host",
