@@ -10,7 +10,10 @@ from typing import Dict, Any, Optional
 
 from ..i_mcp_client import IMCPClient
 from .models import AppStoreConnectConfig
-from .handlers import ConfigureHandler, UserHandler, TestFlightHandler, AppHandler
+from .handlers import (
+    ConfigureHandler, UserHandler, TestFlightHandler, AppHandler,
+    DeviceHandler, AnalyticsHandler, LocalizationHandler
+)
 
 
 class AppStoreConnectMCPClient(IMCPClient):
@@ -26,6 +29,11 @@ class AppStoreConnectMCPClient(IMCPClient):
         self.testflight_handler = TestFlightHandler(self, self.app_handler)
         self.user_handler = UserHandler(self, self.app_handler, self.testflight_handler)
 
+        # 新增的处理器
+        self.device_handler = DeviceHandler(self)
+        self.analytics_handler = AnalyticsHandler(self)
+        self.localization_handler = LocalizationHandler(self)
+
     # =============================================================================
     # MCP 接口方法 - 通过处理器注册工具、资源和提示
     # =============================================================================
@@ -37,6 +45,11 @@ class AppStoreConnectMCPClient(IMCPClient):
         self.testflight_handler.register_tools(mcp)
         self.app_handler.register_tools(mcp)
 
+        # 注册新增的工具
+        self.device_handler.register_tools(mcp)
+        self.analytics_handler.register_tools(mcp)
+        self.localization_handler.register_tools(mcp)
+
     def register_resources(self, mcp: Any) -> None:
         """注册所有资源到FastMCP实例"""
         self.configure_handler.register_resources(mcp)
@@ -44,12 +57,22 @@ class AppStoreConnectMCPClient(IMCPClient):
         self.testflight_handler.register_resources(mcp)
         self.app_handler.register_resources(mcp)
 
+        # 注册新增的资源
+        self.device_handler.register_resources(mcp)
+        self.analytics_handler.register_resources(mcp)
+        self.localization_handler.register_resources(mcp)
+
     def register_prompts(self, mcp: Any) -> None:
         """注册所有提示到FastMCP实例"""
         self.configure_handler.register_prompts(mcp)
         self.user_handler.register_prompts(mcp)
         self.testflight_handler.register_prompts(mcp)
         self.app_handler.register_prompts(mcp)
+
+        # 注册新增的提示
+        self.device_handler.register_prompts(mcp)
+        self.analytics_handler.register_prompts(mcp)
+        self.localization_handler.register_prompts(mcp)
 
     # =============================================================================
     # 配置和基础服务方法 - 供handler调用
@@ -75,6 +98,7 @@ class AppStoreConnectMCPClient(IMCPClient):
             private_key = private_key.replace('\\n', '\n')
 
         app_id = os.getenv('APPSTORE_APP_ID')
+        vendor_number = os.getenv('APPSTORE_VENDOR_NUMBER')  # 添加vendor_number支持
 
         if not all([key_id, issuer_id, private_key]):
             return None
@@ -83,7 +107,8 @@ class AppStoreConnectMCPClient(IMCPClient):
             key_id=key_id,
             issuer_id=issuer_id,
             private_key=private_key,
-            app_id=app_id
+            app_id=app_id,
+            vendor_number=vendor_number
         )
 
     @classmethod
@@ -120,6 +145,12 @@ class AppStoreConnectMCPClient(IMCPClient):
 
     def make_api_request(self, endpoint: str, method: str = "GET", data: Optional[Dict] = None) -> Dict[str, Any]:
         """发送API请求"""
+        if not self.config:
+            self.config = self.load_config_from_env()
+
+        if not self.config:
+            raise ValueError("未找到App Store Connect配置，请先配置环境变量")
+
         token = self.generate_jwt_token()
         headers = {
             "Authorization": f"Bearer {token}",
@@ -128,14 +159,21 @@ class AppStoreConnectMCPClient(IMCPClient):
 
         url = f"https://api.appstoreconnect.apple.com/v1/{endpoint}"
 
-        if method == "GET":
-            response = requests.get(url, headers=headers)
-        elif method == "POST":
-            response = requests.post(url, headers=headers, json=data)
-        elif method == "DELETE":
-            response = requests.delete(url, headers=headers)
-        else:
-            raise ValueError(f"不支持的HTTP方法: {method}")
+        try:
+            if method == "GET":
+                response = requests.get(url, headers=headers)
+            elif method == "POST":
+                response = requests.post(url, headers=headers, json=data)
+            elif method == "PATCH":
+                response = requests.patch(url, headers=headers, json=data)
+            elif method == "DELETE":
+                response = requests.delete(url, headers=headers, json=data)
+            else:
+                raise ValueError(f"不支持的HTTP方法: {method}")
 
-        response.raise_for_status()
-        return response.json()
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"API请求失败: {str(e)}")
+        except ValueError as e:
+            raise Exception(f"JSON解析失败: {str(e)}")

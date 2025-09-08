@@ -13,3 +13,4 @@ class AppStoreConnectConfig:
     issuer_id: str
     private_key: str
     app_id: Optional[str] = None
+    vendor_number: Optional[str] = None  # 用于销售报告和分析数据
