@@ -18,7 +18,16 @@ class AppHandler(IMCPHandler):
 
         @mcp.tool("get_apps")
         def get_apps_tool(limit: int = 100, bundle_id: Optional[str] = None) -> str:
-            """获取所有应用"""
+            """
+            获取App Store Connect中的所有应用列表
+
+            Args:
+                limit (int, optional): 返回应用的最大数量，默认为100
+                bundle_id (str, optional): 根据Bundle ID筛选特定应用，默认为None（获取所有应用）
+
+            Returns:
+                str: 应用列表，包括应用名称、Bundle ID、平台信息等
+            """
             try:
                 apps = self.get_apps(limit=limit, bundle_id=bundle_id)
                 if not apps:
@@ -37,7 +46,16 @@ class AppHandler(IMCPHandler):
 
         @mcp.tool("get_app_info")
         def get_app_info_tool(app_id: str, include_details: bool = False) -> str:
-            """获取应用详细信息"""
+            """
+            获取指定应用的详细信息
+
+            Args:
+                app_id (str): 应用的唯一标识符ID
+                include_details (bool, optional): 是否包含详细信息，默认为False
+
+            Returns:
+                str: 应用的详细信息，包括名称、Bundle ID、平台、SKU等属性
+            """
             try:
                 app_data = self.get_app_info(app_id, include_details)
                 if not app_data:
@@ -64,7 +82,16 @@ class AppHandler(IMCPHandler):
 
         @mcp.tool("get_app_versions")
         def get_app_versions_tool(app_id: str, limit: int = 10) -> str:
-            """获取应用版本列表"""
+            """
+            获取指定应用的版本列表
+
+            Args:
+                app_id (str): 应用的唯一标识符ID
+                limit (int, optional): 返回版本的最大数量，默认为10
+
+            Returns:
+                str: 应用版本列表，包括版本号、状态、创建时间等信息
+            """
             try:
                 versions = self.get_app_versions(app_id, limit)
                 if not versions:
@@ -86,7 +113,15 @@ class AppHandler(IMCPHandler):
 
         @mcp.tool("find_app_by_bundle_id")
         def find_app_by_bundle_id_tool(bundle_id: str) -> str:
-            """根据Bundle ID查找应用"""
+            """
+            根据Bundle ID查找指定的应用
+
+            Args:
+                bundle_id (str): 应用的Bundle标识符，格式通常为com.company.appname
+
+            Returns:
+                str: 匹配的应用信息，包括名称、Bundle ID、平台和应用ID
+            """
             try:
                 app = self.find_app_by_bundle_id(bundle_id)
                 if not app:
@@ -104,7 +139,16 @@ class AppHandler(IMCPHandler):
 
         @mcp.tool("get_app_builds")
         def get_app_builds_tool(app_id: str, limit: int = 10) -> str:
-            """获取应用构建列表"""
+            """
+            获取指定应用的构建（Build）列表
+
+            Args:
+                app_id (str): 应用的唯一标识符ID
+                limit (int, optional): 返回构建的最大数量，默认为10
+
+            Returns:
+                str: 应用构建列表，包括构建版本、构建号、处理状态、上传时间等信息
+            """
             try:
                 builds = self.get_app_builds(app_id, limit)
                 if not builds:
@@ -197,12 +241,12 @@ class AppHandler(IMCPHandler):
 
     def get_apps(self, limit: int = 100, bundle_id: Optional[str] = None) -> List[App]:
         """获取应用列表"""
-        params: Dict[str, Union[int, str]] = {"limit": min(limit, 200)}
+        data: Dict[str, Union[int, str]] = {"limit": min(limit, 200)}
 
         if bundle_id:
-            params["filter[bundleId]"] = bundle_id
+            data["filter[bundleId]"] = bundle_id
 
-        response = self.client.make_api_request("apps", method="GET", params=params)
+        response = self.client.make_api_request("apps", method="GET", data=data)
         apps = []
         for app_data in response.get("data", []):
             app = App.from_api_response(app_data)
@@ -211,12 +255,12 @@ class AppHandler(IMCPHandler):
 
     def get_app_info(self, app_id: str, include_details: bool = False) -> Optional[Dict[str, Any]]:
         """获取应用详细信息"""
-        params: Dict[str, str] = {}
+        data: Dict[str, str] = {}
         if include_details:
-            params["include"] = "appInfos,appStoreVersions,builds"
+            data["include"] = "appInfos,appStoreVersions,builds"
 
         try:
-            response = self.client.make_api_request(f"apps/{app_id}", method="GET", params=params)
+            response = self.client.make_api_request(f"apps/{app_id}", method="GET", data=data)
             return response.get("data")
         except Exception as e:
             print(f"获取应用信息失败: {str(e)}")
@@ -224,10 +268,10 @@ class AppHandler(IMCPHandler):
 
     def get_app_versions(self, app_id: str, limit: int = 10) -> List[Dict[str, Any]]:
         """获取应用版本列表"""
-        params: Dict[str, int] = {"limit": min(limit, 200)}
+        data: Dict[str, int] = {"limit": min(limit, 200)}
 
         try:
-            response = self.client.make_api_request(f"apps/{app_id}/appStoreVersions", method="GET", params=params)
+            response = self.client.make_api_request(f"apps/{app_id}/appStoreVersions", method="GET", data=data)
             return response.get("data", [])
         except Exception as e:
             print(f"获取应用版本失败: {str(e)}")
@@ -235,10 +279,10 @@ class AppHandler(IMCPHandler):
 
     def get_app_builds(self, app_id: str, limit: int = 10) -> List[Dict[str, Any]]:
         """获取应用构建列表"""
-        params: Dict[str, int] = {"limit": min(limit, 200)}
+        data: Dict[str, int] = {"limit": min(limit, 200)}
 
         try:
-            response = self.client.make_api_request(f"apps/{app_id}/builds", method="GET", params=params)
+            response = self.client.make_api_request(f"apps/{app_id}/builds", method="GET", data=data)
             return response.get("data", [])
         except Exception as e:
             print(f"获取应用构建失败: {str(e)}")

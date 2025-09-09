@@ -56,7 +56,7 @@ class AppAnalyticsData:
     total_proceeds: float
     downloads_by_country: Dict[str, int]
     proceeds_by_country: Dict[str, float]
-    report_date: date
+    report_date: str
 
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典"""
@@ -67,7 +67,7 @@ class AppAnalyticsData:
             "total_proceeds": self.total_proceeds,
             "downloads_by_country": self.downloads_by_country,
             "proceeds_by_country": self.proceeds_by_country,
-            "report_date": self.report_date.isoformat()
+            "report_date": self.report_date
         }
 
 
@@ -78,7 +78,7 @@ class SalesReport:
     report_type: SalesReportType
     report_subtype: str
     date_type: ReportFrequency
-    report_date: date
+    report_date: str
     data_segments: List[AnalyticsReportSegment]
 
     def get_app_data(self, app_name: str) -> Optional[AppAnalyticsData]:

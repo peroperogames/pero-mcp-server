@@ -151,7 +151,21 @@ class SSHMCPClient(IMCPClient):
         def configure_ssh(hostname: str, username: str, port: int = 22, password: Optional[str] = None,
                          private_key_path: Optional[str] = None, private_key_content: Optional[str] = None,
                          timeout: int = 30) -> str:
-            """配置新的SSH连接"""
+            """
+            配置新的SSH连接
+
+            Args:
+                hostname (str): SSH服务器的主机名或IP地址
+                username (str): SSH登录用户名
+                port (int, optional): SSH服务端口，默认为22
+                password (str, optional): SSH登录密码，与私钥二选一
+                private_key_path (str, optional): SSH私钥文件路径，与密码二选一
+                private_key_content (str, optional): SSH私钥内容字符串，与密码二选一
+                timeout (int, optional): 连接超时时间（秒），默认30秒
+
+            Returns:
+                str: 配置成功的确认消息
+            """
             self.config = SSHConfig(
                 hostname=hostname,
                 username=username,
@@ -165,27 +179,58 @@ class SSHMCPClient(IMCPClient):
 
         @mcp.tool("ssh_connect")
         def ssh_connect() -> str:
-            """建立SSH连接"""
+            """
+            建立SSH连接
+
+            Returns:
+                str: 连接结果消息，成功或失败的详细信息
+            """
             return self.connect()
 
         @mcp.tool("ssh_disconnect")
         def ssh_disconnect() -> str:
-            """断开SSH连接"""
+            """
+            断开SSH连接
+
+            Returns:
+                str: 断开连接的结果消息
+            """
             return self.disconnect()
 
         @mcp.tool("ssh_execute")
         def ssh_execute(command: str) -> str:
-            """执行SSH命令"""
+            """
+            在远程服务器上执行SSH命令
+
+            Args:
+                command (str): 要在远程服务器上执行的命令
+
+            Returns:
+                str: 命令执行的输出结果，包括标准输出和错误输出
+            """
             return self.execute_command(command)
 
         @mcp.tool("ssh_list_files")
         def ssh_list_files(path: str = ".") -> str:
-            """列出远程目录文件"""
+            """
+            列出远程服务器指定目录的文件和文件夹
+
+            Args:
+                path (str, optional): 要列出的远程目录路径，默认为当前目录（"."）
+
+            Returns:
+                str: 目录内容的详细列表，包括文件权限、大小、修改时间等信息
+            """
             return self.list_files(path)
 
         @mcp.tool("ssh_system_info")
         def ssh_system_info() -> str:
-            """获取远程系统信息"""
+            """
+            获取远程服务器的系统信息
+
+            Returns:
+                str: 系统信息，包括操作系统版本、内核信息、硬件信息等
+            """
             return self.get_system_info()
 
     def register_resources(self, mcp) -> None:
