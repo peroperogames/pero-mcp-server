@@ -2,7 +2,7 @@
 App Store Connect 设备管理处理器 - 负责iOS设备注册和管理
 """
 
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict, Union
 from ...i_mcp_handler import IMCPHandler
 from ..models import Device, DeviceClass, DeviceStatus, DevicePlatform
 
@@ -38,7 +38,7 @@ class DeviceHandler(IMCPHandler):
                 result = f"找到 {len(devices)} 个设备:\n"
                 for device in devices:
                     status_text = "启用" if device.status == DeviceStatus.ENABLED else "禁用"
-                    result += f"- {device.name} ({device.device_class.value}) - {device.platform.value} - {status_text}\n"
+                    result += f"- {device.name} ({device.device_class}) - {device.platform} - {status_text}\n"
                     result += f"  UDID: {device.udid}\n"
                     if device.model:
                         result += f"  型号: {device.model}\n"
@@ -184,7 +184,7 @@ class DeviceHandler(IMCPHandler):
         limit: int = 100
     ) -> List[Device]:
         """获取设备列表"""
-        params = {"limit": min(limit, 200)}
+        params: Dict[str, Union[int, str]] = {"limit": min(limit, 200)}
 
         # 添加过滤条件
         if device_class:
@@ -194,7 +194,7 @@ class DeviceHandler(IMCPHandler):
         if platform:
             params["filter[platform]"] = platform.value
 
-        response = self.client.make_api_request("devices", method="GET")
+        response = self.client.make_api_request("devices", method="GET", params=params)
         devices = []
         for device_data in response.get("data", []):
             device = Device.from_api_response(device_data)
@@ -252,7 +252,8 @@ class DeviceHandler(IMCPHandler):
                 if device_udid == udid:
                     return Device.from_api_response(device_data)
             return None
-        except Exception:
+        except Exception as e:
+            print(f"查找设备失败: {str(e)}")
             return None
 
     def get_device_by_id(self, device_id: str) -> Optional[Device]:
@@ -260,5 +261,6 @@ class DeviceHandler(IMCPHandler):
         try:
             response = self.client.make_api_request(f"devices/{device_id}")
             return Device.from_api_response(response["data"])
-        except Exception:
+        except Exception as e:
+            print(f"获取设备信息失败: {str(e)}")
             return None

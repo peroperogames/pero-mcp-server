@@ -2,9 +2,9 @@
 App Store Connect 应用管理处理器 - 负责应用相关操作
 """
 
-from typing import Any, List, Optional, Dict
+from typing import Any, List, Optional, Dict, Union
 from ...i_mcp_handler import IMCPHandler
-from ..models import App, Platform
+from ..models import App
 
 
 class AppHandler(IMCPHandler):
@@ -141,7 +141,7 @@ class AppHandler(IMCPHandler):
         def get_ios_apps_resource() -> str:
             """获取iOS应用列表资源"""
             try:
-                apps = self.get_apps_by_platform(Platform.IOS)
+                apps = self.get_apps()
                 return f"iOS应用列表:\n" + "\n".join([f"- {app.name} ({app.bundle_id})" for app in apps])
             except Exception as e:
                 return f"获取iOS应用列表失败: {str(e)}"
@@ -196,13 +196,13 @@ class AppHandler(IMCPHandler):
     # =============================================================================
 
     def get_apps(self, limit: int = 100, bundle_id: Optional[str] = None) -> List[App]:
-        """获取应用列表（增强版）"""
-        params = {"limit": min(limit, 200)}
+        """获取应用列表"""
+        params: Dict[str, Union[int, str]] = {"limit": min(limit, 200)}
 
         if bundle_id:
             params["filter[bundleId]"] = bundle_id
 
-        response = self.client.make_api_request("apps", method="GET")
+        response = self.client.make_api_request("apps", method="GET", params=params)
         apps = []
         for app_data in response.get("data", []):
             app = App.from_api_response(app_data)
@@ -210,35 +210,38 @@ class AppHandler(IMCPHandler):
         return apps
 
     def get_app_info(self, app_id: str, include_details: bool = False) -> Optional[Dict[str, Any]]:
-        """获取应用详细信息（增强版）"""
-        params = {}
+        """获取应用详细信息"""
+        params: Dict[str, str] = {}
         if include_details:
             params["include"] = "appInfos,appStoreVersions,builds"
 
         try:
-            response = self.client.make_api_request(f"apps/{app_id}", method="GET")
+            response = self.client.make_api_request(f"apps/{app_id}", method="GET", params=params)
             return response.get("data")
-        except Exception:
+        except Exception as e:
+            print(f"获取应用信息失败: {str(e)}")
             return None
 
     def get_app_versions(self, app_id: str, limit: int = 10) -> List[Dict[str, Any]]:
         """获取应用版本列表"""
-        params = {"limit": min(limit, 200)}
+        params: Dict[str, int] = {"limit": min(limit, 200)}
 
         try:
-            response = self.client.make_api_request(f"apps/{app_id}/appStoreVersions", method="GET")
+            response = self.client.make_api_request(f"apps/{app_id}/appStoreVersions", method="GET", params=params)
             return response.get("data", [])
-        except Exception:
+        except Exception as e:
+            print(f"获取应用版本失败: {str(e)}")
             return []
 
     def get_app_builds(self, app_id: str, limit: int = 10) -> List[Dict[str, Any]]:
         """获取应用构建列表"""
-        params = {"limit": min(limit, 200)}
+        params: Dict[str, int] = {"limit": min(limit, 200)}
 
         try:
-            response = self.client.make_api_request(f"apps/{app_id}/builds", method="GET")
+            response = self.client.make_api_request(f"apps/{app_id}/builds", method="GET", params=params)
             return response.get("data", [])
-        except Exception:
+        except Exception as e:
+            print(f"获取应用构建失败: {str(e)}")
             return []
 
     def find_app_by_bundle_id(self, bundle_id: str) -> Optional[App]:

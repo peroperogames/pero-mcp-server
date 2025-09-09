@@ -346,7 +346,8 @@ class LocalizationHandler(IMCPHandler):
 
         return screenshots
 
-    def get_supported_locales(self) -> List[str]:
+    @classmethod
+    def get_supported_locales(cls) -> List[str]:
         """获取支持的本地化语言列表"""
         # App Store Connect 支持的主要语言地区代码
         return [

@@ -419,7 +419,7 @@ class UserHandler(IMCPHandler):
             end_time = start_time + timedelta(hours=max_duration_hours)
             poll_interval = timedelta(minutes=poll_interval_minutes)
 
-            task_id = f"{email}_{int(time.time())}"
+            pool_task_id = f"{email}_{int(time.time())}"
 
             try:
                 if status_callback:
@@ -464,8 +464,8 @@ class UserHandler(IMCPHandler):
                                         status_callback(email, f"添加TestFlight测试者失败: {str(e)}")
 
                             # 任务完成，清理
-                            if task_id in self._polling_tasks:
-                                del self._polling_tasks[task_id]
+                            if pool_task_id in self._polling_tasks:
+                                del self._polling_tasks[pool_task_id]
                             return
 
                         # 用户还未接受邀请，继续等待
@@ -489,8 +489,8 @@ class UserHandler(IMCPHandler):
 
             finally:
                 # 清理任务
-                if task_id in self._polling_tasks:
-                    del self._polling_tasks[task_id]
+                if pool_task_id in self._polling_tasks:
+                    del self._polling_tasks[pool_task_id]
                 if email in self._status_callbacks:
                     del self._status_callbacks[email]
 

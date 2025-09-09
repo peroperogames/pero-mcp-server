@@ -85,7 +85,8 @@ class TestFlightHandler(IMCPHandler):
                         testers = self.get_beta_testers_for_app(app.id)
                         for tester in testers:
                             all_testers.append(f"{tester.email} - {app.name}")
-                    except:
+                    except Exception as e:
+                        print(f"获取应用 {app.name} 的测试者失败: {str(e)}")
                         continue
 
                 if not all_testers:

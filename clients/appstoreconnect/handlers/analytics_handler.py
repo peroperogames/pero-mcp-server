@@ -6,7 +6,7 @@ import csv
 import io
 import gzip
 from datetime import datetime, date, timedelta
-from typing import Any, List, Optional, Dict
+from typing import Any, List, Optional
 from ...i_mcp_handler import IMCPHandler
 from ..models import (
     SalesReport, AnalyticsReportSegment, AppAnalyticsData,
@@ -297,9 +297,10 @@ class AnalyticsHandler(IMCPHandler):
                         decompressed_data = gzip.decompress(decoded_content).decode('utf-8')
                     else:
                         decompressed_data = content
-                except Exception:
+                except Exception as e:
                     # 如果不是压缩或编码的数据，直接使用
                     decompressed_data = content
+                    print(f"数据解压失败，使用原始内容: {e}")
 
                 # 解析CSV数据
                 segments = self._parse_sales_csv(decompressed_data)
@@ -338,7 +339,8 @@ class AnalyticsHandler(IMCPHandler):
 
         return analytics_data
 
-    def _parse_sales_csv(self, csv_content: str) -> List[AnalyticsReportSegment]:
+    @classmethod
+    def _parse_sales_csv(cls, csv_content: str) -> List[AnalyticsReportSegment]:
         """解析销售报告CSV数据"""
         segments = []
 
