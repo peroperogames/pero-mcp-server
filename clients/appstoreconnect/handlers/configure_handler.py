@@ -2,7 +2,7 @@
 App Store Connect 配置处理器 - 负责配置管理
 """
 
-from typing import Optional, Any
+from typing import Any
 from ...i_mcp_handler import IMCPHandler
 from ..models import AppStoreConnectConfig
 
@@ -17,13 +17,13 @@ class ConfigureHandler(IMCPHandler):
         """注册配置相关工具"""
 
         @mcp.tool("configure_appstore")
-        def configure_appstore(key_id: str, issuer_id: str, private_key: str, app_id: Optional[str] = None) -> str:
+        def configure_appstore(key_id: str, issuer_id: str, private_key: str, vendor_number: str) -> str:
             """配置App Store Connect凭据"""
             config = AppStoreConnectConfig(
                 key_id=key_id,
                 issuer_id=issuer_id,
                 private_key=private_key,
-                app_id=app_id
+                vendor_number=vendor_number
             )
             self.client.set_config(config)
             return "App Store Connect 配置已成功设置"

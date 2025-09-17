@@ -5,11 +5,9 @@ App Store Connect 分析数据处理器 - 负责销售和下载数据分析
 import csv
 import io
 import gzip
-from datetime import datetime, date, timedelta
-from typing import Any, List, Optional, Dict
+from typing import Any, List, Optional
 from ...i_mcp_handler import IMCPHandler
-from ..models import (
-    SalesReport, AnalyticsReportSegment, AppAnalyticsData,
+from ..models import (AnalyticsReportSegment,
     ReportFrequency, SalesReportType
 )
 
@@ -25,179 +23,49 @@ class AnalyticsHandler(IMCPHandler):
 
         @mcp.tool("get_sales_report")
         def get_sales_report_tool(
-            vendor_number: str,
             report_type: str = "SALES",
             report_subtype: str = "SUMMARY",
             frequency: str = "DAILY",
             report_date: str = ""
         ) -> str:
-            """获取销售报告"""
-            try:
-                # 如果未提供日期，使用昨天的日期
-                if not report_date:
-                    report_date = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+            """
+            获取App Store Connect销售报告
 
-                report_date_obj = datetime.strptime(report_date, "%Y-%m-%d").date()
+            Args:
+                report_type (str): (Required) The report to download. For more details on each report type see Download and view reports.
+                    Possible Values: SALES, PRE_ORDER, NEWSSTAND, SUBSCRIPTION, SUBSCRIPTION_EVENT, SUBSCRIBER, SUBSCRIPTION_OFFER_CODE_REDEMPTION, INSTALLS, FIRST_ANNUAL, WIN_BACK_ELIGIBILITY
+                report_subtype (str): (Required) The report sub type to download. For a list of values, see Allowed values based on sales report type table below.
+                    Possible Values: SUMMARY, DETAILED, SUMMARY_INSTALL_TYPE, SUMMARY_TERRITORY, SUMMARY_CHANNEL
+                frequency (str): (Required) Frequency of the report to download. For a list of values, see Allowed values based on sales report type table below.
+                    Possible Values: DAILY, WEEKLY, MONTHLY, YEARLY
+                report_date (str): 报告日期，如果是月报告，则格式为YYYY-MM, 如果是日报告，报告格式为YYYY-MM-DD，
+                    The report date to download. Specify the date in the YYYY-MM-DD format for all report frequencies except DAILY, which doesn’t require a date. For more information, see report availability and storage.
+            Returns:
+                str: 销售报告内容
+            """
+            try:
+                if not self.client.config:
+                    self.client.config = self.client.load_config_from_env()
+
+                # 这里需要vendor_number，从配置中获取
+                vendor_number = getattr(self.client.config, 'vendor_number', None)
+                if not vendor_number:
+                    return "未配置vendor_number，无法获取分析数据"
 
                 report = self.get_sales_report(
                     vendor_number=vendor_number,
                     report_type=SalesReportType(report_type.upper()),
                     report_subtype=report_subtype,
                     frequency=ReportFrequency(frequency.upper()),
-                    report_date=report_date_obj
+                    report_date=report_date
                 )
-
-                if not report or not report.data_segments:
-                    return f"未找到 {report_date} 的销售报告数据"
-
-                # 按应用汇总数据
-                app_summary = {}
-                for segment in report.data_segments:
-                    app_name = segment.app_name
-                    if app_name not in app_summary:
-                        app_summary[app_name] = {
-                            'downloads': 0,
-                            'proceeds': 0.0,
-                            'countries': set()
-                        }
-                    app_summary[app_name]['downloads'] += segment.units
-                    app_summary[app_name]['proceeds'] += segment.proceeds
-                    app_summary[app_name]['countries'].add(segment.country_code)
-
-                result = f"销售报告 - {report_date} ({frequency}):\n\n"
-                for app_name, data in app_summary.items():
-                    result += f"应用: {app_name}\n"
-                    result += f"- 下载量: {data['downloads']:,}\n"
-                    result += f"- 收入: ${data['proceeds']:,.2f}\n"
-                    result += f"- 覆盖国家: {len(data['countries'])} 个\n\n"
-
-                return result
+                return report
             except Exception as e:
                 return f"获取销售报告失败: {str(e)}"
 
-        @mcp.tool("get_app_analytics")
-        def get_app_analytics_tool(
-            app_name: str,
-            vendor_number: str,
-            days: int = 7
-        ) -> str:
-            """获取应用分析数据（最近N天）"""
-            try:
-                analytics_data = self.get_app_analytics(app_name, vendor_number, days)
-
-                if not analytics_data:
-                    return f"未找到应用 {app_name} 最近 {days} 天的分析数据"
-
-                total_downloads = sum(data.total_downloads for data in analytics_data)
-                total_proceeds = sum(data.total_proceeds for data in analytics_data)
-
-                result = f"应用分析 - {app_name} (最近 {days} 天):\n\n"
-                result += f"总下载量: {total_downloads:,}\n"
-                result += f"总收入: ${total_proceeds:,.2f}\n"
-                result += f"平均日下载: {total_downloads/days:,.1f}\n"
-                result += f"平均日收入: ${total_proceeds/days:,.2f}\n\n"
-
-                # 按国家汇总
-                country_downloads = {}
-                country_proceeds = {}
-                for data in analytics_data:
-                    for country, downloads in data.downloads_by_country.items():
-                        country_downloads[country] = country_downloads.get(country, 0) + downloads
-                    for country, proceeds in data.proceeds_by_country.items():
-                        country_proceeds[country] = country_proceeds.get(country, 0.0) + proceeds
-
-                # 显示前5个国家
-                top_countries = sorted(country_downloads.items(), key=lambda x: x[1], reverse=True)[:5]
-                if top_countries:
-                    result += "主要市场 (按下载量):\n"
-                    for country, downloads in top_countries:
-                        proceeds = country_proceeds.get(country, 0.0)
-                        result += f"- {country}: {downloads:,} 下载, ${proceeds:,.2f}\n"
-
-                return result
-            except Exception as e:
-                return f"获取应用分析数据失败: {str(e)}"
-
-        @mcp.tool("get_top_countries")
-        def get_top_countries_tool(
-            vendor_number: str,
-            report_date: str = "",
-            top_n: int = 10
-        ) -> str:
-            """获取下载量最高的国家排行"""
-            try:
-                if not report_date:
-                    report_date = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
-
-                report_date_obj = datetime.strptime(report_date, "%Y-%m-%d").date()
-
-                report = self.get_sales_report(
-                    vendor_number=vendor_number,
-                    report_type=SalesReportType.SALES,
-                    report_subtype="SUMMARY",
-                    frequency=ReportFrequency.DAILY,
-                    report_date=report_date_obj
-                )
-
-                if not report or not report.data_segments:
-                    return f"未找到 {report_date} 的销售数据"
-
-                # 按国家汇总
-                country_data = {}
-                for segment in report.data_segments:
-                    country = segment.country_code
-                    if country not in country_data:
-                        country_data[country] = {'downloads': 0, 'proceeds': 0.0}
-                    country_data[country]['downloads'] += segment.units
-                    country_data[country]['proceeds'] += segment.proceeds
-
-                # 排序并取前N个
-                top_countries = sorted(
-                    country_data.items(),
-                    key=lambda x: x[1]['downloads'],
-                    reverse=True
-                )[:top_n]
-
-                result = f"下载量排行榜 - {report_date} (前 {top_n} 名):\n\n"
-                for i, (country, data) in enumerate(top_countries, 1):
-                    result += f"{i}. {country}: {data['downloads']:,} 下载, ${data['proceeds']:,.2f}\n"
-
-                return result
-            except Exception as e:
-                return f"获取国家排行失败: {str(e)}"
-
     def register_resources(self, mcp: Any) -> None:
         """注册分析数据相关资源"""
-
-        @mcp.resource("appstore://analytics/summary")
-        def get_analytics_summary_resource() -> str:
-            """获取分析数据摘要资源"""
-            try:
-                # 这里需要vendor_number，从配置中获取
-                vendor_number = getattr(self.client.config, 'vendor_number', None)
-                if not vendor_number:
-                    return "未配置vendor_number，无法获取分析数据"
-
-                yesterday = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
-                report_date_obj = datetime.strptime(yesterday, "%Y-%m-%d").date()
-
-                report = self.get_sales_report(
-                    vendor_number=vendor_number,
-                    report_type=SalesReportType.SALES,
-                    report_subtype="SUMMARY",
-                    frequency=ReportFrequency.DAILY,
-                    report_date=report_date_obj
-                )
-
-                if not report or not report.data_segments:
-                    return f"未找到 {yesterday} 的分析数据"
-
-                total_downloads = sum(seg.units for seg in report.data_segments)
-                total_proceeds = sum(seg.proceeds for seg in report.data_segments)
-
-                return f"分析摘要 ({yesterday}):\n总下载: {total_downloads:,}\n总收入: ${total_proceeds:,.2f}"
-            except Exception as e:
-                return f"获取分析摘要失败: {str(e)}"
+        pass
 
     def register_prompts(self, mcp: Any) -> None:
         """注册分析数据相关提示"""
@@ -255,90 +123,97 @@ class AnalyticsHandler(IMCPHandler):
         report_type: SalesReportType,
         report_subtype: str,
         frequency: ReportFrequency,
-        report_date: date
-    ) -> Optional[SalesReport]:
+        report_date: str
+    ) -> Optional[str]:
         """获取销售报告"""
-        # 格式化日期
-        if frequency == ReportFrequency.DAILY:
-            date_str = report_date.strftime("%Y-%m-%d")
-        elif frequency == ReportFrequency.WEEKLY:
-            date_str = report_date.strftime("%Y-%m-%d")  # 周报告也使用相同格式
-        elif frequency == ReportFrequency.MONTHLY:
-            date_str = report_date.strftime("%Y-%m")
-        else:  # YEARLY
-            date_str = report_date.strftime("%Y")
-
-        params = {
+        data = {
             "filter[frequency]": frequency.value,
-            "filter[reportDate]": date_str,
+            "filter[reportDate]": report_date,
             "filter[reportSubType]": report_subtype,
             "filter[reportType]": report_type.value,
             "filter[vendorNumber]": vendor_number
         }
 
         try:
-            response = self.client.make_api_request("salesReports", method="GET")
+            # 销售报告API通常返回压缩文件，不是JSON
+            response = self.client.make_api_request("salesReports", method="GET", data=data, expect_json=False)
 
-            # 解析报告数据
-            if not response.get("data"):
+            # 检查响应类型并处理
+            if "raw_content" in response:
+                # 处理二进制内容（可能是gzip压缩的CSV）
+                raw_content = response["raw_content"]
+                content_type = response.get("content_type", "")
+
+                print(f"收到二进制内容，类型: {content_type}")
+
+                # 尝试解压缩
+                try:
+                    if "gzip" in content_type or raw_content.startswith(b'\x1f\x8b'):
+                        # 这是gzip压缩的内容
+                        import gzip
+                        decompressed_data = gzip.decompress(raw_content).decode('utf-8')
+                        print(f"成功解压缩，数据长度: {len(decompressed_data)} 字符")
+                        print(f"解压后内容前200字符: {decompressed_data[:200]}")
+                    else:
+                        # 可能是未压缩的文本
+                        decompressed_data = raw_content.decode('utf-8')
+                        print(f"未压缩文本，长度: {len(decompressed_data)} 字符")
+                        print(f"内容前200字符: {decompressed_data[:200]}")
+
+                except Exception as decompress_error:
+                    print(f"解压缩失败: {decompress_error}")
+                    # 尝试直接作为文本处理
+                    try:
+                        decompressed_data = raw_content.decode('utf-8')
+                        print(f"作为UTF-8文本处理，长度: {len(decompressed_data)} 字符")
+                    except:
+                        print(f"无法解码为文本，原始内容: {raw_content[:100]}")
+                        return None
+
+            elif "text_content" in response:
+                # 文本内容
+                decompressed_data = response["text_content"]
+                print(f"收到文本内容，长度: {len(decompressed_data)} 字符")
+                print(f"内容前200字符: {decompressed_data[:200]}")
+
+            elif "data" in response:
+                # 标准JSON响应
+                if not response.get("data"):
+                    print("API返回了空的数据数组")
+                    return None
+
+                # 处理JSON格式的报告数据
+                report_data = response["data"][0]
+                if "attributes" in report_data and "content" in report_data["attributes"]:
+                    content = report_data["attributes"]["content"]
+
+                    # 处理base64编码的内容
+                    try:
+                        import base64
+                        if isinstance(content, str):
+                            decoded_content = base64.b64decode(content)
+                            decompressed_data = gzip.decompress(decoded_content).decode('utf-8')
+                        else:
+                            decompressed_data = content
+                    except Exception as e:
+                        decompressed_data = content
+                        print(f"数据解压失败，使用原始内容: {e}")
+                else:
+                    print("JSON响应中缺少content字段")
+                    return None
+            else:
+                print(f"未知的响应格式: {response}")
                 return None
 
-            # 假设返回的是压缩的CSV数据
-            report_data = response["data"][0]
-            if "attributes" in report_data and "content" in report_data["attributes"]:
-                content = report_data["attributes"]["content"]
-
-                # 解压缩数据（如果是gzip压缩的）
-                try:
-                    import base64
-                    # 如果content是base64编码的
-                    if isinstance(content, str):
-                        decoded_content = base64.b64decode(content)
-                        decompressed_data = gzip.decompress(decoded_content).decode('utf-8')
-                    else:
-                        decompressed_data = content
-                except Exception:
-                    # 如果不是压缩或编码的数据，直接使用
-                    decompressed_data = content
-
-                # 解析CSV数据
-                segments = self._parse_sales_csv(decompressed_data)
-
-                return SalesReport(
-                    vendor_number=vendor_number,
-                    report_type=report_type,
-                    report_subtype=report_subtype,
-                    date_type=frequency,
-                    report_date=report_date,
-                    data_segments=segments
-                )
+            return decompressed_data
         except Exception as e:
             print(f"获取销售报告失败: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
-    def get_app_analytics(self, app_name: str, vendor_number: str, days: int = 7) -> List[AppAnalyticsData]:
-        """获取应用分析数据（最近N天）"""
-        analytics_data = []
-
-        for i in range(days):
-            report_date = date.today() - timedelta(days=i+1)
-
-            report = self.get_sales_report(
-                vendor_number=vendor_number,
-                report_type=SalesReportType.SALES,
-                report_subtype="SUMMARY",
-                frequency=ReportFrequency.DAILY,
-                report_date=report_date
-            )
-
-            if report:
-                app_data = report.get_app_data(app_name)
-                if app_data:
-                    analytics_data.append(app_data)
-
-        return analytics_data
-
-    def _parse_sales_csv(self, csv_content: str) -> List[AnalyticsReportSegment]:
+    @classmethod
+    def _parse_sales_csv(cls, csv_content: str) -> List[AnalyticsReportSegment]:
         """解析销售报告CSV数据"""
         segments = []
 

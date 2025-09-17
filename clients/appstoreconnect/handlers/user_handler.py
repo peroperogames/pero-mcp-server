@@ -25,7 +25,12 @@ class UserHandler(IMCPHandler):
 
         @mcp.tool("get_team_members")
         def get_team_members_tool() -> str:
-            """获取团队成员"""
+            """
+            获取App Store Connect团队成员列表
+
+            Returns:
+                str: 团队成员列表，包括成员邮箱、全名等信息
+            """
             try:
                 members = self.get_team_members()
                 return f"团队共有 {len(members)} 名成员:\n" + "\n".join([f"- {m.email} ({m.full_name})" for m in members])
@@ -34,7 +39,12 @@ class UserHandler(IMCPHandler):
 
         @mcp.tool("check_user_invitations")
         def check_invitations_tool() -> str:
-            """检查待处理的用户邀请"""
+            """
+            检查App Store Connect中待处理的用户邀请
+
+            Returns:
+                str: 待处理邀请列表，包括被邀请者邮箱、角色、状态、过期时间等信息
+            """
             try:
                 invitations = self.get_user_invitations()
                 if not invitations:
@@ -50,7 +60,18 @@ class UserHandler(IMCPHandler):
 
         @mcp.tool("invite_user_with_polling")
         def invite_user_with_polling_tool(email: str, app_name: str, role: str = "CUSTOMER_SUPPORT") -> str:
-            """邀请用户加入团队并异步等待其接受邀请后添加到TestFlight（带轮询监控）"""
+            """
+            邀请用户加入团队并异步等待其接受邀请后添加到TestFlight（带轮询监控）
+
+            Args:
+                email (str): 被邀请用户的邮箱地址
+                app_name (str): 要添加TestFlight权限的应用名称
+                role (str, optional): 用户在团队中的角色，默认为"CUSTOMER_SUPPORT"
+                    可选值: "ADMIN", "APP_MANAGER", "DEVELOPER", "MARKETING", "SALES", "CUSTOMER_SUPPORT"
+
+            Returns:
+                str: 邀请操作的结果信息，包括邀请状态和后续操作说明
+            """
             # 从邮箱自动提取用户名
             first_name = email.split('@')[0]
 
@@ -66,7 +87,15 @@ class UserHandler(IMCPHandler):
 
         @mcp.tool("get_polling_status")
         def get_polling_status_tool(email: Optional[str] = None) -> str:
-            """获取轮询任务状态"""
+            """
+            获取用户邀请轮询任务的状态
+
+            Args:
+                email (str, optional): 要查询状态的用户邮箱，默认为None（获取所有任务状态）
+
+            Returns:
+                str: 轮询任务状态信息，包括任务进度、当前状态等
+            """
             try:
                 status = self.get_polling_status(email)
 
@@ -99,7 +128,15 @@ class UserHandler(IMCPHandler):
 
         @mcp.tool("cancel_polling_task")
         def cancel_polling_task_tool(email: str) -> str:
-            """取消指定用户的轮询任务"""
+            """
+            取消指定用户的轮询任务
+
+            Args:
+                email (str): 要取消轮询任务的用户邮箱地址
+
+            Returns:
+                str: 取消操作的结果信息
+            """
             try:
                 return self.cancel_polling_task(email)
             except Exception as e:
@@ -107,7 +144,15 @@ class UserHandler(IMCPHandler):
 
         @mcp.tool("remove_team_member")
         def remove_team_member_tool(email: str) -> str:
-            """从团队中移除成员"""
+            """
+            从App Store Connect团队中移除指定成员
+
+            Args:
+                email (str): 要移除的团队成员邮箱地址
+
+            Returns:
+                str: 移除操作的结果信息
+            """
             try:
                 self.remove_team_member(email)
                 return f"已成功从团队中移除用户 {email}"
@@ -118,7 +163,16 @@ class UserHandler(IMCPHandler):
 
         @mcp.tool("remove_user_completely")
         def remove_user_completely_tool(email: str, app_name: str) -> str:
-            """完全移除用户（从团队和TestFlight中移除）"""
+            """
+            完全移除用户（同时从团队和TestFlight中移除）
+
+            Args:
+                email (str): 要移除的用户邮箱地址
+                app_name (str): 要从TestFlight中移除的应用名称
+
+            Returns:
+                str: 完全移除操作的详细结果信息，包括团队和TestFlight的移除状态
+            """
             try:
                 return self.remove_user_completely(email, app_name)
             except Exception as e:
@@ -419,7 +473,7 @@ class UserHandler(IMCPHandler):
             end_time = start_time + timedelta(hours=max_duration_hours)
             poll_interval = timedelta(minutes=poll_interval_minutes)
 
-            task_id = f"{email}_{int(time.time())}"
+            pool_task_id = f"{email}_{int(time.time())}"
 
             try:
                 if status_callback:
@@ -464,8 +518,8 @@ class UserHandler(IMCPHandler):
                                         status_callback(email, f"添加TestFlight测试者失败: {str(e)}")
 
                             # 任务完成，清理
-                            if task_id in self._polling_tasks:
-                                del self._polling_tasks[task_id]
+                            if pool_task_id in self._polling_tasks:
+                                del self._polling_tasks[pool_task_id]
                             return
 
                         # 用户还未接受邀请，继续等待
@@ -489,8 +543,8 @@ class UserHandler(IMCPHandler):
 
             finally:
                 # 清理任务
-                if task_id in self._polling_tasks:
-                    del self._polling_tasks[task_id]
+                if pool_task_id in self._polling_tasks:
+                    del self._polling_tasks[pool_task_id]
                 if email in self._status_callbacks:
                     del self._status_callbacks[email]
 

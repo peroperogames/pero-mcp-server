@@ -18,7 +18,15 @@ class LocalizationHandler(IMCPHandler):
 
         @mcp.tool("get_app_localizations")
         def get_app_localizations_tool(app_id: str) -> str:
-            """获取应用的本地化信息"""
+            """
+            获取指定应用的本地化信息
+
+            Args:
+                app_id (str): 应用的唯一标识符ID
+
+            Returns:
+                str: 应用的本地化信息列表，包括各语言的应用名称、副标题、隐私政策等
+            """
             try:
                 localizations = self.get_app_info_localizations(app_id)
                 if not localizations:
@@ -41,7 +49,15 @@ class LocalizationHandler(IMCPHandler):
 
         @mcp.tool("get_version_localizations")
         def get_version_localizations_tool(version_id: str) -> str:
-            """获取版本的本地化信息"""
+            """
+            获取指定版本的本地化信息
+
+            Args:
+                version_id (str): 应用版本的唯一标识符ID
+
+            Returns:
+                str: 版本的本地化信息列表，包括各语言的描述、关键词、新功能介绍等
+            """
             try:
                 localizations = self.get_version_localizations(version_id)
                 if not localizations:
@@ -78,7 +94,21 @@ class LocalizationHandler(IMCPHandler):
             marketing_url: Optional[str] = None,
             support_url: Optional[str] = None
         ) -> str:
-            """更新版本本地化信息"""
+            """
+            更新指定版本的本地化信息
+
+            Args:
+                localization_id (str): 本地化记录的唯一标识符ID
+                description (str, optional): 应用描述，默认为None（不更改）
+                keywords (str, optional): 关键词列表，用逗号分隔，默认为None（不更改）
+                whats_new (str, optional): 新功能介绍文本，默认为None（不更改）
+                promotional_text (str, optional): 推广文本，默认为None（不更改）
+                marketing_url (str, optional): 营销网址，默认为None（不更改）
+                support_url (str, optional): 支持网址，默认为None（不更改）
+
+            Returns:
+                str: 更新操作的结果信息，包括更新成功的字段列表
+            """
             try:
                 updates = {}
                 if description is not None:
@@ -121,7 +151,15 @@ class LocalizationHandler(IMCPHandler):
 
         @mcp.tool("get_app_screenshots")
         def get_app_screenshots_tool(localization_id: str) -> str:
-            """获取应用截图"""
+            """
+            获取指定本地化版本的应用截图列表
+
+            Args:
+                localization_id (str): 本地化记录的唯一标识符ID
+
+            Returns:
+                str: 应用截图列表，包括截图ID、文件名、文件大小、状态等信息
+            """
             try:
                 screenshots = self.get_app_screenshots(localization_id)
                 if not screenshots:
@@ -144,7 +182,12 @@ class LocalizationHandler(IMCPHandler):
 
         @mcp.tool("get_supported_locales")
         def get_supported_locales_tool() -> str:
-            """获取支持的本地化语言列表"""
+            """
+            获取App Store Connect支持的所有本地化语言/地区列表
+
+            Returns:
+                str: 按语言分组的支持语言/地区列表，便于选择合适的本地化目标
+            """
             locales = self.get_supported_locales()
 
             result = "App Store 支持的语言/地区:\n\n"
@@ -346,7 +389,8 @@ class LocalizationHandler(IMCPHandler):
 
         return screenshots
 
-    def get_supported_locales(self) -> List[str]:
+    @classmethod
+    def get_supported_locales(cls) -> List[str]:
         """获取支持的本地化语言列表"""
         # App Store Connect 支持的主要语言地区代码
         return [

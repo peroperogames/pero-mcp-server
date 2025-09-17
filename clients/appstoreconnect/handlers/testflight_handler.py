@@ -19,7 +19,15 @@ class TestFlightHandler(IMCPHandler):
 
         @mcp.tool("get_beta_groups")
         def get_beta_groups_tool(app_name: str) -> str:
-            """获取应用的TestFlight测试组列表"""
+            """
+            获取指定应用的TestFlight测试组列表
+
+            Args:
+                app_name (str): 应用名称，用于查找对应的应用
+
+            Returns:
+                str: TestFlight测试组列表，包括组名和组类型（内部/外部测试组）
+            """
             try:
                 app = self.app_handler.get_app_by_name(app_name)
                 if not app:
@@ -39,7 +47,15 @@ class TestFlightHandler(IMCPHandler):
 
         @mcp.tool("get_beta_testers")
         def get_beta_testers_tool(app_name: str) -> str:
-            """获取应用的TestFlight测试者列表"""
+            """
+            获取指定应用的TestFlight测试者列表
+
+            Args:
+                app_name (str): 应用名称，用于查找对应的应用
+
+            Returns:
+                str: TestFlight测试者列表，包括测试者邮箱、状态、加入时间等信息
+            """
             try:
                 app = self.app_handler.get_app_by_name(app_name)
                 if not app:
@@ -85,7 +101,8 @@ class TestFlightHandler(IMCPHandler):
                         testers = self.get_beta_testers_for_app(app.id)
                         for tester in testers:
                             all_testers.append(f"{tester.email} - {app.name}")
-                    except:
+                    except Exception as e:
+                        print(f"获取应用 {app.name} 的测试者失败: {str(e)}")
                         continue
 
                 if not all_testers:

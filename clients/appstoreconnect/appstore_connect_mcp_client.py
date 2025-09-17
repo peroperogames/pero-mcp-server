@@ -97,7 +97,6 @@ class AppStoreConnectMCPClient(IMCPClient):
         if private_key and '\\n' in private_key:
             private_key = private_key.replace('\\n', '\n')
 
-        app_id = os.getenv('APPSTORE_APP_ID')
         vendor_number = os.getenv('APPSTORE_VENDOR_NUMBER')  # 添加vendor_number支持
 
         if not all([key_id, issuer_id, private_key]):
@@ -107,7 +106,6 @@ class AppStoreConnectMCPClient(IMCPClient):
             key_id=key_id,
             issuer_id=issuer_id,
             private_key=private_key,
-            app_id=app_id,
             vendor_number=vendor_number
         )
 
@@ -119,7 +117,8 @@ class AppStoreConnectMCPClient(IMCPClient):
             try:
                 with open(key_path, 'r') as f:
                     return f.read()
-            except Exception:
+            except Exception as e:
+                print(f"读取私钥文件失败: {str(e)}")
                 pass
         return None
 
@@ -143,7 +142,8 @@ class AppStoreConnectMCPClient(IMCPClient):
 
         return jwt.encode(payload, self.config.private_key, algorithm="ES256", headers=header)
 
-    def make_api_request(self, endpoint: str, method: str = "GET", data: Optional[Dict] = None) -> Dict[str, Any]:
+    def make_api_request(self, endpoint: str, method: str = "GET", data: Optional[Dict] = None,
+                        expect_json: bool = True) -> Dict[str, Any]:
         """发送API请求"""
         if not self.config:
             self.config = self.load_config_from_env()
@@ -161,7 +161,8 @@ class AppStoreConnectMCPClient(IMCPClient):
 
         try:
             if method == "GET":
-                response = requests.get(url, headers=headers)
+                # 对于GET请求，将data作为查询参数
+                response = requests.get(url, headers=headers, params=data)
             elif method == "POST":
                 response = requests.post(url, headers=headers, json=data)
             elif method == "PATCH":
@@ -172,8 +173,31 @@ class AppStoreConnectMCPClient(IMCPClient):
                 raise ValueError(f"不支持的HTTP方法: {method}")
 
             response.raise_for_status()
-            return response.json()
+
+            # 打印响应信息用于调试
+            print(f"响应状态码: {response.status_code}")
+            print(f"响应头: {dict(response.headers)}")
+            print(f"响应内容类型: {response.headers.get('content-type', 'unknown')}")
+            print(f"响应内容长度: {len(response.content)} bytes")
+
+            # 检查响应内容类型
+            content_type = response.headers.get('content-type', '').lower()
+
+            if expect_json and 'application/json' in content_type:
+                return response.json()
+            elif not expect_json or 'application/a-gzip' in content_type or 'application/gzip' in content_type:
+                # 对于销售报告，返回原始内容
+                print(f"收到非JSON响应，内容前100字节: {response.content[:100]}")
+                return {"raw_content": response.content, "content_type": content_type}
+            else:
+                # 尝试解析JSON，如果失败则返回文本内容
+                try:
+                    return response.json()
+                except ValueError:
+                    print(f"JSON解析失败，返回文本内容，前200字符: {response.text[:200]}")
+                    return {"text_content": response.text, "content_type": content_type}
+
         except requests.exceptions.RequestException as e:
             raise Exception(f"API请求失败: {str(e)}")
         except ValueError as e:
-            raise Exception(f"JSON解析失败: {str(e)}")
+            raise Exception(f"API请求失败: {str(e)}")

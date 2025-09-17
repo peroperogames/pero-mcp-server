@@ -2,7 +2,7 @@
 App Store Connect 设备管理处理器 - 负责iOS设备注册和管理
 """
 
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict, Union
 from ...i_mcp_handler import IMCPHandler
 from ..models import Device, DeviceClass, DeviceStatus, DevicePlatform
 
@@ -23,7 +23,21 @@ class DeviceHandler(IMCPHandler):
             platform: Optional[str] = None,
             limit: int = 100
         ) -> str:
-            """获取设备列表"""
+            """
+            获取App Store Connect中注册的设备列表
+
+            Args:
+                device_class (str, optional): 设备类别筛选条件，默认为None（获取所有类别）
+                    可选值: "APPLE_WATCH", "IPAD", "IPHONE", "IPOD", "APPLE_TV", "MAC"
+                status (str, optional): 设备状态筛选条件，默认为None（获取所有状态）
+                    可选值: "ENABLED" (启用), "DISABLED" (禁用)
+                platform (str, optional): 平台筛选条件，默认为None（获取所有平台）
+                    可选值: "IOS", "MAC_OS", "TV_OS", "WATCH_OS"
+                limit (int, optional): 返回设备的最大数量，默认为100
+
+            Returns:
+                str: 设备列表，包括设备名称、UDID、平台、状态等信息
+            """
             try:
                 devices = self.list_devices(
                     device_class=DeviceClass(device_class) if device_class else None,
@@ -38,7 +52,7 @@ class DeviceHandler(IMCPHandler):
                 result = f"找到 {len(devices)} 个设备:\n"
                 for device in devices:
                     status_text = "启用" if device.status == DeviceStatus.ENABLED else "禁用"
-                    result += f"- {device.name} ({device.device_class.value}) - {device.platform.value} - {status_text}\n"
+                    result += f"- {device.name} ({device.device_class}) - {device.platform} - {status_text}\n"
                     result += f"  UDID: {device.udid}\n"
                     if device.model:
                         result += f"  型号: {device.model}\n"
@@ -52,7 +66,18 @@ class DeviceHandler(IMCPHandler):
 
         @mcp.tool("register_device")
         def register_device_tool(name: str, udid: str, platform: str) -> str:
-            """注册新设备"""
+            """
+            注册新的iOS/macOS设备到开发者账户
+
+            Args:
+                name (str): 设备的显示名称，用于在开发者后台识别设备
+                udid (str): 设备的唯一标识符（UDID），40位16进制字符串
+                platform (str): 设备平台
+                    可选值: "IOS", "MAC_OS", "TV_OS", "WATCH_OS"
+
+            Returns:
+                str: 设备注册成功的确认信息，包括设备详情
+            """
             try:
                 device = self.register_device(name, udid, DevicePlatform(platform.upper()))
                 return f"设备注册成功:\n" + \
@@ -65,7 +90,18 @@ class DeviceHandler(IMCPHandler):
 
         @mcp.tool("update_device")
         def update_device_tool(device_id: str, name: Optional[str] = None, status: Optional[str] = None) -> str:
-            """更新设备信息"""
+            """
+            更新已注册设备的信息
+
+            Args:
+                device_id (str): 设备的唯一标识符ID
+                name (str, optional): 新的设备名称，默认为None（不更改）
+                status (str, optional): 新的设备状态，默认为None（不更改）
+                    可选值: "ENABLED" (启用), "DISABLED" (禁用)
+
+            Returns:
+                str: 设备更新成功的确认信息，包括更新后的设备详情
+            """
             try:
                 device = self.update_device(
                     device_id,
@@ -82,7 +118,15 @@ class DeviceHandler(IMCPHandler):
 
         @mcp.tool("find_device_by_udid")
         def find_device_by_udid_tool(udid: str) -> str:
-            """根据UDID查找设备"""
+            """
+            根据UDID查找指定的设备
+
+            Args:
+                udid (str): 设备的唯一标识符（UDID），40位16进制字符串
+
+            Returns:
+                str: 匹配的设备信息，包括名称、UDID、平台、状态等详情
+            """
             try:
                 device = self.find_device_by_udid(udid)
                 if not device:
@@ -184,17 +228,17 @@ class DeviceHandler(IMCPHandler):
         limit: int = 100
     ) -> List[Device]:
         """获取设备列表"""
-        params = {"limit": min(limit, 200)}
+        data: Dict[str, Union[int, str]] = {"limit": min(limit, 200)}
 
         # 添加过滤条件
         if device_class:
-            params["filter[deviceClass]"] = device_class.value
+            data["filter[deviceClass]"] = device_class.value
         if status:
-            params["filter[status]"] = status.value
+            data["filter[status]"] = status.value
         if platform:
-            params["filter[platform]"] = platform.value
+            data["filter[platform]"] = platform.value
 
-        response = self.client.make_api_request("devices", method="GET")
+        response = self.client.make_api_request("devices", method="GET", data=data)
         devices = []
         for device_data in response.get("data", []):
             device = Device.from_api_response(device_data)
@@ -252,7 +296,8 @@ class DeviceHandler(IMCPHandler):
                 if device_udid == udid:
                     return Device.from_api_response(device_data)
             return None
-        except Exception:
+        except Exception as e:
+            print(f"查找设备失败: {str(e)}")
             return None
 
     def get_device_by_id(self, device_id: str) -> Optional[Device]:
@@ -260,5 +305,6 @@ class DeviceHandler(IMCPHandler):
         try:
             response = self.client.make_api_request(f"devices/{device_id}")
             return Device.from_api_response(response["data"])
-        except Exception:
+        except Exception as e:
+            print(f"获取设备信息失败: {str(e)}")
             return None
