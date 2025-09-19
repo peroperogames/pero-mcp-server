@@ -3,7 +3,6 @@
 """
 
 from dataclasses import dataclass
-from datetime import datetime, date
 from enum import Enum
 from typing import Optional, Dict, Any, List
 
@@ -22,6 +21,16 @@ class SalesReportType(Enum):
     NEWSSTAND = "NEWSSTAND"
     SUBSCRIPTION = "SUBSCRIPTION"
     SUBSCRIPTION_EVENT = "SUBSCRIPTION_EVENT"
+
+
+class FinanceReportType(Enum):
+    """财务报告类型枚举"""
+    FINANCIAL = "FINANCIAL"
+
+
+class FinanceReportRegion(Enum):
+    """财务报告区域枚举"""
+    ZZ = "ZZ"  # Worldwide
 
 
 @dataclass
@@ -44,6 +53,30 @@ class AnalyticsReportSegment:
             proceeds=float(data[8]) if len(data) > 8 and data[8].replace('.', '').isdigit() else 0.0,
             country_code=data[13] if len(data) > 13 else "",
             currency_code=data[15] if len(data) > 15 else ""
+        )
+
+
+@dataclass
+class FinanceReportSegment:
+    """财务报告段数据"""
+    start_date: str
+    end_date: str
+    usd_proceeds: float
+    proceeds: float
+    currency_code: str
+    country_code: str
+
+    @classmethod
+    def from_data_row(cls, data: List[str]) -> 'FinanceReportSegment':
+        """从财务报告数据行创建段"""
+        return cls(
+            start_date=data[0] if len(data) > 0 else "",
+            end_date=data[1] if len(data) > 1 else "",
+            usd_proceeds=float(data[5]) if len(data) > 5 and data[5].replace('.', '').replace('-',
+                                                                                              '').isdigit() else 0.0,
+            proceeds=float(data[6]) if len(data) > 6 and data[6].replace('.', '').replace('-', '').isdigit() else 0.0,
+            currency_code=data[3] if len(data) > 3 else "",
+            country_code=data[2] if len(data) > 2 else ""
         )
 
 
@@ -107,3 +140,40 @@ class SalesReport:
             proceeds_by_country=proceeds_by_country,
             report_date=self.report_date
         )
+
+
+@dataclass
+class FinanceReport:
+    """财务报告"""
+    vendor_number: str
+    report_type: FinanceReportType
+    report_subtype: str
+    date_type: ReportFrequency
+    report_date: str
+    data_segments: List[FinanceReportSegment]
+
+    def get_total_proceeds(self) -> float:
+        """计算报告中所有段的总收益"""
+        return sum(segment.proceeds for segment in self.data_segments)
+
+    def get_total_usd_proceeds(self) -> float:
+        """计算报告中所有段的总美元收益"""
+        return sum(segment.usd_proceeds for segment in self.data_segments)
+
+    def get_segment_data(self, country_code: str) -> Optional[FinanceReportSegment]:
+        """获取特定国家/地区的财务数据段"""
+        for segment in self.data_segments:
+            if segment.country_code == country_code:
+                return segment
+        return None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典"""
+        return {
+            "vendor_number": self.vendor_number,
+            "report_type": self.report_type.value,
+            "report_subtype": self.report_subtype,
+            "date_type": self.date_type.value,
+            "report_date": self.report_date,
+            "data_segments": [segment.to_dict() for segment in self.data_segments]
+        }

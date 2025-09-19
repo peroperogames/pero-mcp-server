@@ -3,16 +3,16 @@ App Store Connect TestFlight处理器 - 负责测试组和测试者管理
 """
 
 from typing import Any, List, Dict, Optional
-from ...i_mcp_handler import IMCPHandler
+
 from ..models import BetaGroup, BetaTester
+from ...i_mcp_handler import IMCPHandler
 
 
 class TestFlightHandler(IMCPHandler):
     """TestFlight处理器 - 负责测试组、测试者等TestFlight相关操作"""
 
-    def __init__(self, client, app_handler):
+    def __init__(self, client):
         self.client = client
-        self.app_handler = app_handler
 
     def register_tools(self, mcp: Any) -> None:
         """注册TestFlight相关工具"""
@@ -29,7 +29,7 @@ class TestFlightHandler(IMCPHandler):
                 str: TestFlight测试组列表，包括组名和组类型（内部/外部测试组）
             """
             try:
-                app = self.app_handler.get_app_by_name(app_name)
+                app = self.client.handlers["AppHandler"].get_app_by_name(app_name)
                 if not app:
                     return f"未找到应用: {app_name}"
 
@@ -57,7 +57,7 @@ class TestFlightHandler(IMCPHandler):
                 str: TestFlight测试者列表，包括测试者邮箱、状态、加入时间等信息
             """
             try:
-                app = self.app_handler.get_app_by_name(app_name)
+                app = self.client.handlers["AppHandler"].get_app_by_name(app_name)
                 if not app:
                     return f"未找到应用: {app_name}"
 
@@ -91,7 +91,7 @@ class TestFlightHandler(IMCPHandler):
         def get_beta_testers_resource() -> str:
             """获取TestFlight测试者资源"""
             try:
-                apps = self.app_handler.get_apps()
+                apps = self.client.handlers["AppHandler"].get_apps()
                 if not apps:
                     return "没有找到可用应用"
 
@@ -132,16 +132,72 @@ class TestFlightHandler(IMCPHandler):
 
     def get_beta_testers_for_app(self, app_id: str) -> List[BetaTester]:
         """获取应用的TestFlight测试者列表"""
-        response = self.client.make_api_request(f"apps/{app_id}/betaTesters")
-        testers = []
-        for tester_data in response.get("data", []):
-            tester = BetaTester.from_api_response(tester_data)
-            testers.append(tester)
-        return testers
+        try:
+            # 首先获取应用的所有测试组
+            groups = self.get_beta_groups_for_app(app_id)
+            if not groups:
+                print(f"应用 {app_id} 没有找到任何测试组")
+                return []
+
+            print(f"找到 {len(groups)} 个测试组，开始获取测试者...")
+
+            unique_testers = {}  # 用于去重，key 为 email
+
+            # 遍历每个测试组，获取其中的测试者
+            for group in groups:
+                try:
+                    print(f"正在获取测试组 '{group.name}' (ID: {group.id}) 的测试者...")
+
+                    # 获取该测试组的所有测试者
+                    group_testers = self.get_beta_testers_for_group(group.id)
+
+                    # 添加到去重字典中
+                    for tester in group_testers:
+                        unique_testers[tester.email] = tester
+
+                    print(f"测试组 '{group.name}' 有 {len(group_testers)} 个测试者")
+
+                except Exception as group_error:
+                    print(f"获取测试组 '{group.name}' (ID: {group.id}) 的测试者失败: {str(group_error)}")
+                    # 继续处理下一个测试组，不中断整个流程
+                    continue
+
+            # 转换为列表并返回
+            all_testers = list(unique_testers.values())
+            print(f"总共获取到 {len(all_testers)} 个唯一的测试者")
+
+            return all_testers
+
+        except Exception as e:
+            print(f"获取应用 {app_id} 的测试者失败: {str(e)}")
+            raise Exception(f"无法获取应用 {app_id} 的测试者列表: {str(e)}")
+
+    def get_beta_testers_for_group(self, group_id: str) -> List[BetaTester]:
+        """获取指定测试组的测试人员列表"""
+        try:
+            response = self.client.make_api_request(
+                f"betaGroups/{group_id}/betaTesters",
+                method="GET",
+                data={
+                    "fields[betaTesters]": "email,firstName,lastName,state",
+                    "limit": "200"  # 设置分页限制
+                }
+            )
+
+            testers = []
+            for tester_data in response.get("data", []):
+                tester = BetaTester.from_api_response(tester_data)
+                testers.append(tester)
+
+            return testers
+
+        except Exception as e:
+            print(f"获取测试组 {group_id} 的测试者失败: {str(e)}")
+            raise Exception(f"无法获取测试组 {group_id} 的测试者列表: {str(e)}")
 
     def find_beta_tester_by_email(self, email: str, app_name: str) -> Optional[BetaTester]:
         """根据邮箱查找TestFlight测试者"""
-        app = self.app_handler.get_app_by_name(app_name)
+        app = self.client.handlers["AppHandler"].get_app_by_name(app_name)
         if not app:
             return None
 

@@ -3,12 +3,13 @@ SSH MCP 客户端 - 整合了客户端和服务器功能
 """
 
 import os
-import paramiko
-from typing import Optional
 from io import StringIO
+from typing import Optional
 
-from ..i_mcp_client import IMCPClient
+import paramiko
+
 from .models import SSHConfig
+from ..i_mcp_client import IMCPClient
 
 
 class SSHMCPClient(IMCPClient):
@@ -16,6 +17,7 @@ class SSHMCPClient(IMCPClient):
 
     def __init__(self):
         """初始化客户端"""
+        super().__init__()
         self.config = None
         self.ssh_client = None
 
@@ -122,35 +124,13 @@ class SSHMCPClient(IMCPClient):
         except Exception as e:
             return f"命令执行失败: {str(e)}"
 
-    def list_files(self, path: str = ".") -> str:
-        """列出远程目录文件"""
-        command = f"ls -la '{path}'"
-        return self.execute_command(command)
-
-    def get_system_info(self) -> str:
-        """获取远程系统信息"""
-        commands = [
-            "uname -a",
-            "cat /etc/os-release 2>/dev/null || cat /etc/redhat-release 2>/dev/null || echo 'Unknown OS'",
-            "df -h",
-            "free -h",
-            "uptime"
-        ]
-
-        results = []
-        for cmd in commands:
-            result = self.execute_command(cmd)
-            results.append(result)
-
-        return "\n" + "="*50 + "\n".join(results)
-
     def register_tools(self, mcp) -> None:
         """注册SSH工具到FastMCP实例"""
 
         @mcp.tool("configure_ssh")
         def configure_ssh(hostname: str, username: str, port: int = 22, password: Optional[str] = None,
-                         private_key_path: Optional[str] = None, private_key_content: Optional[str] = None,
-                         timeout: int = 30) -> str:
+                          private_key_path: Optional[str] = None, private_key_content: Optional[str] = None,
+                          timeout: int = 30) -> str:
             """
             配置新的SSH连接
 
@@ -210,29 +190,6 @@ class SSHMCPClient(IMCPClient):
             """
             return self.execute_command(command)
 
-        @mcp.tool("ssh_list_files")
-        def ssh_list_files(path: str = ".") -> str:
-            """
-            列出远程服务器指定目录的文件和文件夹
-
-            Args:
-                path (str, optional): 要列出的远程目录路径，默认为当前目录（"."）
-
-            Returns:
-                str: 目录内容的详细列表，包括文件权限、大小、修改时间等信息
-            """
-            return self.list_files(path)
-
-        @mcp.tool("ssh_system_info")
-        def ssh_system_info() -> str:
-            """
-            获取远程服务器的系统信息
-
-            Returns:
-                str: 系统信息，包括操作系统版本、内核信息、硬件信息等
-            """
-            return self.get_system_info()
-
     def register_resources(self, mcp) -> None:
         """注册SSH资源到FastMCP实例"""
 
@@ -278,8 +235,7 @@ class SSHMCPClient(IMCPClient):
 
 使用可用的SSH工具来诊断问题:
 - ssh_connect: 测试连接
-- ssh_execute: 执行命令
-- ssh_system_info: 获取系统信息"""
+- ssh_execute: 执行命令"""
 
         @mcp.prompt("remote_admin")
         def remote_admin_prompt(task: str = "") -> str:

@@ -3,8 +3,9 @@ App Store Connect 应用管理处理器 - 负责应用相关操作
 """
 
 from typing import Any, List, Optional, Dict, Union
-from ...i_mcp_handler import IMCPHandler
+
 from ..models import App
+from ...i_mcp_handler import IMCPHandler
 
 
 class AppHandler(IMCPHandler):
@@ -131,7 +132,7 @@ class AppHandler(IMCPHandler):
                 result += f"- 名称: {app.name}\n"
                 result += f"- Bundle ID: {app.bundle_id}\n"
                 result += f"- 平台: {app.platform.value}\n"
-                result += f"- 应用ID: {app.id}\n"
+                result += f"- 应用I1D: {app.id}\n"
 
                 return result
             except Exception as e:
@@ -177,7 +178,8 @@ class AppHandler(IMCPHandler):
             """获取应用列表资源"""
             try:
                 apps = self.get_apps()
-                return f"应用列表:\n" + "\n".join([f"- {app.name} ({app.bundle_id}) - {app.platform.value}" for app in apps])
+                return f"应用列表:\n" + "\n".join(
+                    [f"- {app.name} ({app.bundle_id}) - {app.platform.value}" for app in apps])
             except Exception as e:
                 return f"获取应用列表失败: {str(e)}"
 
@@ -195,10 +197,10 @@ class AppHandler(IMCPHandler):
 
         @mcp.prompt("appstore_app_management")
         def appstore_app_management_prompt(
-            operation: str = "",
-            app_id: str = "",
-            bundle_id: str = "",
-            platform: str = ""
+                operation: str = "",
+                app_id: str = "",
+                bundle_id: str = "",
+                platform: str = ""
         ) -> str:
             """App Store Connect应用管理提示"""
             return f"""App Store Connect 应用管理助手
@@ -252,6 +254,14 @@ class AppHandler(IMCPHandler):
             app = App.from_api_response(app_data)
             apps.append(app)
         return apps
+
+    def get_app_by_name(self, app_name: str) -> Optional[App]:
+        """根据应用名称获取应用信息"""
+        apps = self.get_apps()
+        for app in apps:
+            if app.name.lower() == app_name.lower():
+                return app
+        return None
 
     def get_app_info(self, app_id: str, include_details: bool = False) -> Optional[Dict[str, Any]]:
         """获取应用详细信息"""

@@ -2,21 +2,20 @@
 App Store Connect 用户管理处理器 - 负责团队成员和邀请管理
 """
 
-import time
 import threading
+import time
 from datetime import datetime, timedelta
 from typing import Optional, Any, List, Callable, Dict
-from ...i_mcp_handler import IMCPHandler
+
 from ..models import TeamMember, UserInvitation, ROLE_MAPPING
+from ...i_mcp_handler import IMCPHandler
 
 
 class UserHandler(IMCPHandler):
     """用户管理处理器 - 负责团队成员、邀请等用户相关操作"""
 
-    def __init__(self, client, app_handler, testflight_handler):
+    def __init__(self, client):
         self.client = client
-        self.app_handler = app_handler
-        self.testflight_handler = testflight_handler
         self._polling_tasks = {}  # 存储正在进行的轮询任务
         self._status_callbacks = {}  # 存储状态回调函数
 
@@ -33,7 +32,8 @@ class UserHandler(IMCPHandler):
             """
             try:
                 members = self.get_team_members()
-                return f"团队共有 {len(members)} 名成员:\n" + "\n".join([f"- {m.email} ({m.full_name})" for m in members])
+                return f"团队共有 {len(members)} 名成员:\n" + "\n".join(
+                    [f"- {m.email} ({m.full_name})" for m in members])
             except Exception as e:
                 return f"获取团队成员失败: {str(e)}"
 
@@ -105,11 +105,11 @@ class UserHandler(IMCPHandler):
                         return status['error']
                     else:
                         return f"用户 {status['email']} 的轮询状态:\n" + \
-                               f"- 任务ID: {status['task_id']}\n" + \
-                               f"- 应用: {status['app_name']}\n" + \
-                               f"- 状态: {status['status']}\n" + \
-                               f"- 已运行: {status['elapsed_minutes']:.0f} 分钟\n" + \
-                               f"- 线程活跃: {'是' if status['thread_alive'] else '否'}"
+                            f"- 任务ID: {status['task_id']}\n" + \
+                            f"- 应用: {status['app_name']}\n" + \
+                            f"- 状态: {status['status']}\n" + \
+                            f"- 已运行: {status['elapsed_minutes']:.0f} 分钟\n" + \
+                            f"- 线程活跃: {'是' if status['thread_alive'] else '否'}"
                 else:
                     # 所有任务状态
                     if status['total_count'] == 0:
@@ -118,13 +118,13 @@ class UserHandler(IMCPHandler):
                     result = f"运行中的轮询任务 ({status['total_count']} 个):\n"
                     for task_id, task_info in status['tasks'].items():
                         result += f"- {task_info['email']} ({task_info['app_name']}) - " + \
-                                f"状态: {task_info['status']} - " + \
-                                f"运行: {task_info['elapsed_minutes']:.0f}分钟 - " + \
-                                f"活跃: {'是' if task_info['thread_alive'] else '否'}\n"
+                                  f"状态: {task_info['status']} - " + \
+                                  f"运行: {task_info['elapsed_minutes']:.0f}分钟 - " + \
+                                  f"活跃: {'是' if task_info['thread_alive'] else '否'}\n"
                     return result
 
             except Exception as e:
-                return f"获取轮询状��失败: {str(e)}"
+                return f"获取轮询状态失败: {str(e)}"
 
         @mcp.tool("cancel_polling_task")
         def cancel_polling_task_tool(email: str) -> str:
@@ -344,7 +344,7 @@ class UserHandler(IMCPHandler):
         try:
             # 1. 从TestFlight中移除
             try:
-                self.testflight_handler.remove_beta_tester(email, app_name)
+                self.client.handlers["TestFlightHandler"].remove_beta_tester(email, app_name)
                 results.append(f"已从应用 {app_name} 的TestFlight测试组中移除用户 {email}")
             except ValueError as e:
                 if "不在应用" in str(e):
@@ -372,18 +372,19 @@ class UserHandler(IMCPHandler):
             return f"移除用户过程中发生错误: {str(e)}"
 
     def invite_user_and_wait_for_testflight(self, email: str, first_name: str, app_name: str,
-                                           roles: List[str], status_callback: Optional[Callable[[str, str], None]] = None) -> str:
+                                            roles: List[str],
+                                            status_callback: Optional[Callable[[str, str], None]] = None) -> str:
         """邀请用户加入团队，并异步等待其接受邀请后添加到TestFlight"""
         try:
             # 1. 检查用户是否已在团队中
             existing_member = self.check_user_in_team(email)
             if existing_member:
                 # 用户已在团队中，直接添加到TestFlight
-                app = self.app_handler.get_app_by_name(app_name)
+                app = self.client.handlers["AppHandler"].get_app_by_name(app_name)
                 if not app:
                     return f"未找到应用: {app_name}"
 
-                beta_groups = self.testflight_handler.get_beta_groups_for_app(app.id)
+                beta_groups = self.client.handlers["TestFlightHandler"].get_beta_groups_for_app(app.id)
                 internal_groups = [group for group in beta_groups if group.is_internal_group]
 
                 if not internal_groups:
@@ -391,7 +392,7 @@ class UserHandler(IMCPHandler):
 
                 default_group = internal_groups[0]
                 try:
-                    self.testflight_handler.add_beta_tester(email, first_name, [default_group.id])
+                    self.client.handlers["TestFlightHandler"].add_beta_tester(email, first_name, [default_group.id])
                     return f"用户 {email} 已在团队中，已直接添加到TestFlight测试组: {default_group.name}"
                 except Exception as e:
                     if "already exists" in str(e).lower():
@@ -400,7 +401,7 @@ class UserHandler(IMCPHandler):
                         return f"添加TestFlight测试者失败: {str(e)}"
 
             # 2. 获取应用信息
-            app = self.app_handler.get_app_by_name(app_name)
+            app = self.client.handlers["AppHandler"].get_app_by_name(app_name)
             if not app:
                 return f"未找到应用: {app_name}"
 
@@ -465,9 +466,10 @@ class UserHandler(IMCPHandler):
             return f"未找到用户 {email} 的轮询任务"
 
     def _poll_user_acceptance(self, email: str, first_name: str, app_name: str,
-                             max_duration_hours: int = 2, poll_interval_minutes: int = 5,
-                             status_callback: Optional[Callable[[str, str], None]] = None) -> None:
+                              max_duration_hours: int = 2, poll_interval_minutes: int = 5,
+                              status_callback: Optional[Callable[[str, str], None]] = None) -> None:
         """轮询检查用户是否接受邀请并加入团队"""
+
         def polling_thread():
             start_time = datetime.now()
             end_time = start_time + timedelta(hours=max_duration_hours)
@@ -489,13 +491,13 @@ class UserHandler(IMCPHandler):
 
                             # 用户已加入团队，现在添加到TestFlight
                             try:
-                                app = self.app_handler.get_app_by_name(app_name)
+                                app = self.client.handlers["AppHandler"].get_app_by_name(app_name)
                                 if not app:
                                     if status_callback:
                                         status_callback(email, f"错误: 未找到应用 {app_name}")
                                     return
 
-                                beta_groups = self.testflight_handler.get_beta_groups_for_app(app.id)
+                                beta_groups = self.client.handlers["TestFlightHandler"].get_beta_groups_for_app(app.id)
                                 internal_groups = [group for group in beta_groups if group.is_internal_group]
 
                                 if not internal_groups:
@@ -504,10 +506,12 @@ class UserHandler(IMCPHandler):
                                     return
 
                                 default_group = internal_groups[0]
-                                self.testflight_handler.add_beta_tester(email, first_name, [default_group.id])
+                                self.client.handlers["TestFlightHandler"].add_beta_tester(email, first_name,
+                                                                                          [default_group.id])
 
                                 if status_callback:
-                                    status_callback(email, f"成功: 用户 {email} 已添加到TestFlight测试组 {default_group.name}")
+                                    status_callback(email,
+                                                    f"成功: 用户 {email} 已添加到TestFlight测试组 {default_group.name}")
 
                             except Exception as e:
                                 if "already exists" in str(e).lower():
@@ -527,7 +531,8 @@ class UserHandler(IMCPHandler):
                         remaining = end_time - datetime.now()
 
                         if status_callback:
-                            status_callback(email, f"用户 {email} 尚未接受邀请。已等待: {elapsed.seconds//60}分钟，剩余: {remaining.seconds//60}分钟")
+                            status_callback(email,
+                                            f"用户 {email} 尚未接受邀请。已等待: {elapsed.seconds // 60}分钟，剩余: {remaining.seconds // 60}分钟")
 
                         # 等待下一次轮询
                         time.sleep(poll_interval.total_seconds())

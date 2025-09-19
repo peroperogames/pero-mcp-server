@@ -8,11 +8,11 @@ from enum import Enum
 
 class BetaTesterState(Enum):
     """测试者状态"""
-    WAITING_FOR_REVIEW = "WAITING_FOR_REVIEW"
-    ACCEPTED = "ACCEPTED"
-    DECLINED = "DECLINED"
-    REVOKED = "REVOKED"
     NOT_INVITED = "NOT_INVITED"
+    INVITED = "INVITED"
+    ACCEPTED = "ACCEPTED"
+    INSTALLED = "INSTALLED"
+    REVOKED = "REVOKED"
 
 
 @dataclass
@@ -57,11 +57,12 @@ class BetaTester:
     def state_description(self) -> str:
         """获取状态描述"""
         state_map = {
-            BetaTesterState.WAITING_FOR_REVIEW: "等待审核",
+            BetaTesterState.NOT_INVITED: "未邀请",
+            BetaTesterState.INVITED: "已邀请",
             BetaTesterState.ACCEPTED: "已接受",
-            BetaTesterState.DECLINED: "已拒绝",
+            BetaTesterState.INSTALLED: "已安装",
             BetaTesterState.REVOKED: "已撤销",
-            BetaTesterState.NOT_INVITED: "未邀请"
+
         }
         return state_map.get(self.state, "未知状态")
 

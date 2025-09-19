@@ -2,14 +2,10 @@
 App Store Connect 分析数据处理器 - 负责销售和下载数据分析
 """
 
-import csv
-import io
-import gzip
-from typing import Any, List, Optional
+from typing import Any, Optional
+
+from ..models import (ReportFrequency, SalesReportType)
 from ...i_mcp_handler import IMCPHandler
-from ..models import (AnalyticsReportSegment,
-    ReportFrequency, SalesReportType
-)
 
 
 class AnalyticsHandler(IMCPHandler):
@@ -23,13 +19,13 @@ class AnalyticsHandler(IMCPHandler):
 
         @mcp.tool("get_sales_report")
         def get_sales_report_tool(
-            report_type: str = "SALES",
-            report_subtype: str = "SUMMARY",
-            frequency: str = "DAILY",
-            report_date: str = ""
+                report_type: str = "SALES",
+                report_subtype: str = "SUMMARY",
+                frequency: str = "DAILY",
+                report_date: str = ""
         ) -> str:
             """
-            获取App Store Connect销售报告
+            下载销售和趋势报告，下载根据您指定的标准过滤的销售和趋势报告。
 
             Args:
                 report_type (str): (Required) The report to download. For more details on each report type see Download and view reports.
@@ -63,6 +59,43 @@ class AnalyticsHandler(IMCPHandler):
             except Exception as e:
                 return f"获取销售报告失败: {str(e)}"
 
+        @mcp.tool("get_finance_report")
+        def get_finance_report_tool(
+                region_code: str = "ZZ",
+                report_date: str = ""
+        ) -> str:
+            """
+            下载财务报告，获取特定时期的收入和税务信息。
+
+            Args:
+                region_code (str): (Required) 报告区域代码。通常使用 "ZZ" 表示全球报告。
+                    The region code for the finance report. Use "ZZ" for worldwide reports.
+                report_date (str): (Required) 报告日期，格式为 YYYY-MM。
+                    The report date in YYYY-MM format. Finance reports are typically available monthly.
+            Returns:
+                str: 财务报告内容
+            """
+            try:
+                if not self.client.config:
+                    self.client.config = self.client.load_config_from_env()
+
+                # 这里需要vendor_number，从配置中获取
+                vendor_number = getattr(self.client.config, 'vendor_number', None)
+                if not vendor_number:
+                    return "未配置vendor_number，无法获取财务数据"
+
+                if not report_date:
+                    return "请提供报告日期，格式为 YYYY-MM"
+
+                report = self.get_finance_report(
+                    vendor_number=vendor_number,
+                    region_code=region_code,
+                    report_date=report_date
+                )
+                return report
+            except Exception as e:
+                return f"获取财务报告失败: {str(e)}"
+
     def register_resources(self, mcp: Any) -> None:
         """注册分析数据相关资源"""
         pass
@@ -72,10 +105,10 @@ class AnalyticsHandler(IMCPHandler):
 
         @mcp.prompt("appstore_analytics")
         def appstore_analytics_prompt(
-            operation: str = "",
-            app_name: str = "",
-            vendor_number: str = "",
-            date_range: str = ""
+                operation: str = "",
+                app_name: str = "",
+                vendor_number: str = "",
+                date_range: str = ""
         ) -> str:
             """App Store Connect分析数据提示"""
             return f"""App Store Connect 分析数据助手
@@ -88,15 +121,21 @@ class AnalyticsHandler(IMCPHandler):
 
 支持的操作类型:
 - get_sales_report: 获取销售报告
+- get_finance_report: 获取财务报告
 - get_app_analytics: 获取应用分析数据
 - get_top_countries: 获取国家排行榜
 
-报告类型:
+销售报告类型:
 - SALES: 销售报告 (下载和购买)
 - SUBSCRIPTION: 订阅报告
 - NEWSSTAND: 报刊订阅报告
 
-频率选项:
+财务报告:
+- FINANCIAL: 财务报告 (收入和税务信息)
+- 区域代码: ZZ (全球报告)
+- 报告频率: 月度 (YYYY-MM 格式)
+
+频率选项 (销售报告):
 - DAILY: 日报告
 - WEEKLY: 周报告  
 - MONTHLY: 月报报告
@@ -107,10 +146,15 @@ class AnalyticsHandler(IMCPHandler):
 2. 选择要查询的应用和日期范围
 3. 使用相应的工具获取分析数据
 
+财务报告使用示例:
+- get_finance_report(region_code="ZZ", report_date="2024-08")
+
 注意事项:
 - 销售数据通常有1-2天延迟
+- 财务数据通常有更长的延迟，按月提供
 - 需要有效的vendor_number才能获取数据
 - 部分数据可能需要特定的权限
+- 财务报告包含收入、税务和汇率信息
 """
 
     # =============================================================================
@@ -118,12 +162,12 @@ class AnalyticsHandler(IMCPHandler):
     # =============================================================================
 
     def get_sales_report(
-        self,
-        vendor_number: str,
-        report_type: SalesReportType,
-        report_subtype: str,
-        frequency: ReportFrequency,
-        report_date: str
+            self,
+            vendor_number: str,
+            report_type: SalesReportType,
+            report_subtype: str,
+            frequency: ReportFrequency,
+            report_date: str
     ) -> Optional[str]:
         """获取销售报告"""
         data = {
@@ -134,97 +178,44 @@ class AnalyticsHandler(IMCPHandler):
             "filter[vendorNumber]": vendor_number
         }
 
-        try:
-            # 销售报告API通常返回压缩文件，不是JSON
-            response = self.client.make_api_request("salesReports", method="GET", data=data, expect_json=False)
+        # 销售报告API通常返回压缩文件，不是JSON
+        response = self.client.make_api_request("salesReports", method="GET", data=data)
 
-            # 检查响应类型并处理
-            if "raw_content" in response:
-                # 处理二进制内容（可能是gzip压缩的CSV）
-                raw_content = response["raw_content"]
-                content_type = response.get("content_type", "")
+        # 处理二进制内容（可能是gzip压缩的CSV）
+        raw_content = response["raw_content"]
 
-                print(f"收到二进制内容，类型: {content_type}")
+        # gzip解压缩
+        import gzip
+        decompressed_data = gzip.decompress(raw_content).decode('utf-8')
+        print(f"成功解压缩，数据长度: {len(decompressed_data)} 字符")
+        print(f"解压后内容前200字符: {decompressed_data[:200]}")
 
-                # 尝试解压缩
-                try:
-                    if "gzip" in content_type or raw_content.startswith(b'\x1f\x8b'):
-                        # 这是gzip压缩的内容
-                        import gzip
-                        decompressed_data = gzip.decompress(raw_content).decode('utf-8')
-                        print(f"成功解压缩，数据长度: {len(decompressed_data)} 字符")
-                        print(f"解压后内容前200字符: {decompressed_data[:200]}")
-                    else:
-                        # 可能是未压缩的文本
-                        decompressed_data = raw_content.decode('utf-8')
-                        print(f"未压缩文本，长度: {len(decompressed_data)} 字符")
-                        print(f"内容前200字符: {decompressed_data[:200]}")
+        return decompressed_data
 
-                except Exception as decompress_error:
-                    print(f"解压缩失败: {decompress_error}")
-                    # 尝试直接作为文本处理
-                    try:
-                        decompressed_data = raw_content.decode('utf-8')
-                        print(f"作为UTF-8文本处理，长度: {len(decompressed_data)} 字符")
-                    except:
-                        print(f"无法解码为文本，原始内容: {raw_content[:100]}")
-                        return None
+    def get_finance_report(
+            self,
+            vendor_number: str,
+            region_code: str,
+            report_date: str
+    ) -> Optional[str]:
+        """获取财务报告"""
+        data = {
+            "filter[regionCode]": region_code,
+            "filter[reportDate]": report_date,
+            "filter[reportType]": "FINANCIAL",
+            "filter[vendorNumber]": vendor_number
+        }
 
-            elif "text_content" in response:
-                # 文本内容
-                decompressed_data = response["text_content"]
-                print(f"收到文本内容，长度: {len(decompressed_data)} 字符")
-                print(f"内容前200字符: {decompressed_data[:200]}")
+        # 财务报告API通常返回压缩文件，不是JSON
+        response = self.client.make_api_request("financeReports", method="GET", data=data)
 
-            elif "data" in response:
-                # 标准JSON响应
-                if not response.get("data"):
-                    print("API返回了空的数据数组")
-                    return None
+        # 处理二进制内容（可能是gzip压缩的CSV）
+        raw_content = response["raw_content"]
 
-                # 处理JSON格式的报告数据
-                report_data = response["data"][0]
-                if "attributes" in report_data and "content" in report_data["attributes"]:
-                    content = report_data["attributes"]["content"]
+        # gzip解压缩
+        import gzip
+        decompressed_data = gzip.decompress(raw_content).decode('utf-8')
+        print(f"成功解压缩财务报告，数据长度: {len(decompressed_data)} 字符")
+        print(f"解压后财务报告内容前200字符: {decompressed_data[:200]}")
 
-                    # 处理base64编码的内容
-                    try:
-                        import base64
-                        if isinstance(content, str):
-                            decoded_content = base64.b64decode(content)
-                            decompressed_data = gzip.decompress(decoded_content).decode('utf-8')
-                        else:
-                            decompressed_data = content
-                    except Exception as e:
-                        decompressed_data = content
-                        print(f"数据解压失败，使用原始内容: {e}")
-                else:
-                    print("JSON响应中缺少content字段")
-                    return None
-            else:
-                print(f"未知的响应格式: {response}")
-                return None
-
-            return decompressed_data
-        except Exception as e:
-            print(f"获取销售报告失败: {e}")
-            import traceback
-            traceback.print_exc()
-            return None
-
-    @classmethod
-    def _parse_sales_csv(cls, csv_content: str) -> List[AnalyticsReportSegment]:
-        """解析销售报告CSV数据"""
-        segments = []
-
-        csv_reader = csv.reader(io.StringIO(csv_content), delimiter='\t')
-
-        # 跳过标题行
-        next(csv_reader, None)
-
-        for row in csv_reader:
-            if len(row) >= 16:  # 确保有足够的列
-                segment = AnalyticsReportSegment.from_data_row(row)
-                segments.append(segment)
-
-        return segments
+        return decompressed_data
