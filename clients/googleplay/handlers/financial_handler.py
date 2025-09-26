@@ -31,6 +31,7 @@ class FinancialHandler(IMCPHandler):
 
             Returns:
                 str: 下载结果的描述信息，包含文件大小和状态
+                返回的描述信息的表头为：Description,Transaction Date,Transaction Time,Tax Type,Transaction Type,Refund Type,Product Title,Product id,Product Type,Sku Id,Hardware,Buyer Country,Buyer State,Buyer Postal Code,Buyer Currency,Amount (Buyer Currency),Currency Conversion Rate,Merchant Currency,Amount (Merchant Currency),Base Plan ID,Offer ID,Group ID,First USD 1M Eligible,Service Fee %,Fee Description,Promotion ID
             """
             return self.get_monthly_financial_report(target_month)
 
