@@ -2,6 +2,6 @@
 Pero MCP Server Clients Package
 """
 
-from .i_mcp_client import IMCPClient
+from .mcp_client_interface import IMCPClient
 
 __all__ = ['IMCPClient']

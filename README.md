@@ -23,6 +23,7 @@
 <td width="50%">
 
 ### 🔐 SSH 客户端
+
 - 🔗 **SSH 连接管理** - 安全的远程连接
 - ⚡ **远程命令执行** - 快速执行远程操作
 - 📁 **文件传输功能** - 双向文件传输支持
@@ -31,6 +32,7 @@
 <td width="50%">
 
 ### 🍎 App Store Connect 集成
+
 - 📱 **应用列表获取** - 管理你的应用
 - 👥 **团队成员管理** - 协作团队管理
 - 🧪 **TestFlight 管理工具** - 测试版本管理
@@ -42,10 +44,12 @@
 ## 🛠️ 安装和配置
 
 ### 📋 环境要求
+
 - ![Python](https://img.shields.io/badge/Python-3.8+-blue?style=flat-square&logo=python) Python 3.8+
 - 📦 相关依赖包（见 requirements.txt）
 
 ### 💻 安装依赖
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -60,13 +64,14 @@ MCP 服务器支持多种传输方式，可以通过以下参数进行配置：
 
 <summary>🔧 传输参数说明</summary>
 
-| 参数名 | 描述              | 默认值       | 示例                       |
-|--------|-----------------|-----------|--------------------------|
+| 参数名         | 描述              | 默认值       | 示例                       |
+|-------------|-----------------|-----------|--------------------------|
 | `transport` | 传输协议类型          | `stdio`   | `stdio`, `http`          |
-| `host` | 服务器主机地址（HTTP模式） | `0.0.0.0` | `127.0.0.1`, `localhost` |
-| `port` | 服务器端口（HTTP模式）   | `8000`    | `8000`, `8080`           |
+| `host`      | 服务器主机地址（HTTP模式） | `0.0.0.0` | `127.0.0.1`, `localhost` |
+| `port`      | 服务器端口（HTTP模式）   | `8000`    | `8000`, `8080`           |
 
 **📋 传输方式说明：**
+
 - 🔤 **stdio** (默认)：标准输入输出方式，适合本地开发和测试
 - 🌐 **http**：streamable-http 方式，适合网络通信和远程访问
 
@@ -93,7 +98,6 @@ MCP 服务器支持多种传输方式，可以通过以下参数进行配置：
 	}
 }
 ```
-
 
 ### 🌐 远程生产环境配置
 
@@ -129,24 +133,24 @@ MCP 服务器支持多种传输方式，可以通过以下参数进行配置：
 <details>
 <summary>🔐 SSH 配置</summary>
 
-| 变量名 | 描述 | 示例 |
-|--------|------|------|
-| `SSH_HOST` | SSH 服务器主机地址 | `192.168.1.100` |
-| `SSH_USERNAME` | SSH 用户名 | `admin` |
-| `SSH_PORT` | SSH 端口（默认 22） | `22` |
-| `SSH_PASSWORD` | SSH 密码 | `your_password` |
+| 变量名            | 描述            | 示例              |
+|----------------|---------------|-----------------|
+| `SSH_HOST`     | SSH 服务器主机地址   | `192.168.1.100` |
+| `SSH_USERNAME` | SSH 用户名       | `admin`         |
+| `SSH_PORT`     | SSH 端口（默认 22） | `22`            |
+| `SSH_PASSWORD` | SSH 密码        | `your_password` |
 
 </details>
 
 <details>
 <summary>🍎 App Store Connect 配置</summary>
 
-| 变量名 | 描述 | 必需 |
-|--------|------|------|
-| `APPSTORE_KEY_ID` | App Store Connect API 密钥 ID | ✅ |
-| `APPSTORE_ISSUER_ID` | 发行者 ID | ✅ |
-| `APPSTORE_PRIVATE_KEY` | 私钥内容（完整的 PEM 格式） | ✅ |
-| `APPSTORE_APP_ID` | 应用 ID | ❌ |
+| 变量名                    | 描述                          | 必需 |
+|------------------------|-----------------------------|----|
+| `APPSTORE_KEY_ID`      | App Store Connect API 密钥 ID | ✅  |
+| `APPSTORE_ISSUER_ID`   | 发行者 ID                      | ✅  |
+| `APPSTORE_PRIVATE_KEY` | 私钥内容（完整的 PEM 格式）            | ✅  |
+| `APPSTORE_APP_ID`      | 应用 ID                       | ❌  |
 
 </details>
 
@@ -154,34 +158,38 @@ MCP 服务器支持多种传输方式，可以通过以下参数进行配置：
 
 <div align="center">
 
-| 分类 | 工具名称 | 功能描述 |
-|------|----------|----------|
-| 🔐 **SSH** | `ssh_connect` | 🔗 建立 SSH 连接 |
-| 🔐 **SSH** | `ssh_execute` | ⚡ 执行远程命令 |
-| 🔐 **SSH** | `ssh_upload` | ⬆️ 上传文件 |
-| 🔐 **SSH** | `ssh_download` | ⬇️ 下载文件 |
+| 分类               | 工具名称                 | 功能描述                       |
+|------------------|----------------------|----------------------------|
+| 🔐 **SSH**       | `ssh_connect`        | 🔗 建立 SSH 连接               |
+| 🔐 **SSH**       | `ssh_execute`        | ⚡ 执行远程命令                   |
+| 🔐 **SSH**       | `ssh_upload`         | ⬆️ 上传文件                    |
+| 🔐 **SSH**       | `ssh_download`       | ⬇️ 下载文件                    |
 | 🍎 **App Store** | `configure_appstore` | ⚙️ 配置 App Store Connect 凭据 |
-| 🍎 **App Store** | `get_apps` | 📱 获取应用列表 |
-| 🍎 **App Store** | `get_team_members` | 👥 获取团队成员信息 |
+| 🍎 **App Store** | `get_apps`           | 📱 获取应用列表                  |
+| 🍎 **App Store** | `get_team_members`   | 👥 获取团队成员信息                |
 
 </div>
 
 ## 📚 可用资源
 
 ### 🔐 SSH 资源
+
 - `ssh://status` - 📊 SSH 连接状态
 - `ssh://info` - ℹ️ SSH 连接信息
 
 ### 🍎 App Store Connect 资源
+
 - `appstore://apps` - 📱 应用列表
 - `appstore://members` - 👥 团队成员列表
 
 ## 💡 可用提示模板
 
 ### 🔐 SSH 提示
+
 - `ssh_troubleshoot` - 🔧 SSH 连接故障排除
 
 ### 🍎 App Store Connect 提示
+
 - `manage_testflight` - 🧪 TestFlight 管理操作
 
 ## 🚀 使用示例
@@ -268,11 +276,13 @@ pero-mcp-server/
 ### 🏗️ 代码架构
 
 #### 1. 📦 客户端架构 (clients/)
+
 - **🎯 i_mcp_client.py**: 定义了MCP客户端的通用接口
 - **🔐 ssh/**: SSH功能的客户端实现，包含SSH连接管理和远程操作
 - **🍎 appstoreconnect/**: App Store Connect功能的客户端实现，处理App Store API交互
 
 #### 2. 🚀 主服务器 (pero_mcp_server.py)
+
 - 🔧 集成所有客户端组件
 - 🎯 提供统一的MCP服务器入口
 - ⚡ 处理工具调用、资源访问和提示模板
@@ -316,9 +326,10 @@ pero-mcp-server/
 <summary>🛠️ 第一步：创建客户端类</summary>
 
 ```python
-from clients.i_mcp_client import IMCPClient
+from clients.mcp_client_interface import IMCPClient
 from typing import Any
 import mcp.types as types
+
 
 class YourNewMCPClient(IMCPClient):
     """你的新功能客户端"""

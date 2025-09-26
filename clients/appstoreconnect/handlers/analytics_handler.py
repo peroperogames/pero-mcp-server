@@ -5,7 +5,7 @@ App Store Connect 分析数据处理器 - 负责销售和下载数据分析
 from typing import Any, Optional
 
 from ..models import (ReportFrequency, SalesReportType)
-from ...i_mcp_handler import IMCPHandler
+from ...mcp_handler_interface import IMCPHandler
 
 
 class AnalyticsHandler(IMCPHandler):
@@ -17,15 +17,15 @@ class AnalyticsHandler(IMCPHandler):
     def register_tools(self, mcp: Any) -> None:
         """注册分析数据相关工具"""
 
-        @mcp.tool("get_sales_report")
-        def get_sales_report_tool(
+        @mcp.tool("get_appstore_sales_report")
+        def get_appstore_sales_report_tool(
                 report_type: str = "SALES",
                 report_subtype: str = "SUMMARY",
                 frequency: str = "DAILY",
                 report_date: str = ""
         ) -> str:
             """
-            下载销售和趋势报告，下载根据您指定的标准过滤的销售和趋势报告。
+            下载 AppStore 销售和趋势报告，下载根据您指定的标准过滤的销售和趋势报告。
 
             Args:
                 report_type (str): (Required) The report to download. For more details on each report type see Download and view reports.
@@ -59,13 +59,13 @@ class AnalyticsHandler(IMCPHandler):
             except Exception as e:
                 return f"获取销售报告失败: {str(e)}"
 
-        @mcp.tool("get_finance_report")
-        def get_finance_report_tool(
+        @mcp.tool("get_appstore_finance_report")
+        def get_appstore_finance_report_tool(
                 region_code: str = "ZZ",
                 report_date: str = ""
         ) -> str:
             """
-            下载财务报告，获取特定时期的收入和税务信息。
+            下载 AppStore 财务报告，获取特定时期的收入和税务信息。
 
             Args:
                 region_code (str): (Required) 报告区域代码。通常使用 "ZZ" 表示全球报告。

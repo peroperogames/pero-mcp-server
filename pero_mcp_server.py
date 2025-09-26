@@ -4,17 +4,20 @@ Pero MCP Server - FastMCP 中转站，支持依赖注入
 
 import importlib
 import inspect
-import dotenv
 from pathlib import Path
 from typing import List, Type
+
+import dotenv
 from fastmcp import FastMCP
 
-from clients.i_mcp_client import IMCPClient
+from clients.mcp_client_interface import IMCPClient
+
 
 class PeroMCPServer:
     """Pero MCP Server - FastMCP，支持依赖注入"""
 
-    def __init__(self, name: str = "Pero MCP Server", client_classes: List[Type[IMCPClient]] = None, auto_discover: bool = True):
+    def __init__(self, name: str = "Pero MCP Server", client_classes: List[Type[IMCPClient]] = None,
+                 auto_discover: bool = True):
         """初始化 Pero MCP Server
 
         Args:
@@ -71,8 +74,8 @@ class PeroMCPServer:
                         for name, obj in inspect.getmembers(module, inspect.isclass):
                             # 检查是否继承自IMCPClient且不是接口本身
                             if (issubclass(obj, IMCPClient) and
-                                obj != IMCPClient and
-                                not inspect.isabstract(obj)):
+                                    obj != IMCPClient and
+                                    not inspect.isabstract(obj)):
                                 client_classes.append(obj)
                                 print(f"发现客户端: {name} ({module_path})")
 
@@ -159,7 +162,7 @@ class PeroMCPServer:
 
     @classmethod
     def create_and_run(cls, name: str = "Pero MCP Server", transport: str = "stdio",
-                      host: str = "0.0.0.0", port: int = 8000) -> None:
+                       host: str = "0.0.0.0", port: int = 8000) -> None:
         """创建服务器实例并启动（便捷方法）
 
         Args:

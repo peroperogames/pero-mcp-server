@@ -8,7 +8,7 @@ import pkgutil
 from abc import ABC
 from typing import Any, Dict
 
-from .i_mcp_handler import IMCPHandler
+from .mcp_handler_interface import IMCPHandler
 
 
 class IMCPClient(ABC):

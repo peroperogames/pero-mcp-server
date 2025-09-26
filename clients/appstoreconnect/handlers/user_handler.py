@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Any, List, Callable, Dict
 
 from ..models import TeamMember, UserInvitation, ROLE_MAPPING
-from ...i_mcp_handler import IMCPHandler
+from ...mcp_handler_interface import IMCPHandler
 
 
 class UserHandler(IMCPHandler):
@@ -61,7 +61,7 @@ class UserHandler(IMCPHandler):
         @mcp.tool("invite_user_with_polling")
         def invite_user_with_polling_tool(email: str, app_name: str, role: str = "CUSTOMER_SUPPORT") -> str:
             """
-            邀请用户加入团队并异步等待其接受邀请后添加到TestFlight（带轮询监控）
+            App Store Connect 邀请用户加入团队并异步等待其接受邀请后添加到TestFlight（带轮询监控）
 
             Args:
                 email (str): 被邀请用户的邮箱地址
@@ -88,7 +88,7 @@ class UserHandler(IMCPHandler):
         @mcp.tool("get_polling_status")
         def get_polling_status_tool(email: Optional[str] = None) -> str:
             """
-            获取用户邀请轮询任务的状态
+            App Store Connect 获取用户邀请轮询任务的状态
 
             Args:
                 email (str, optional): 要查询状态的用户邮箱，默认为None（获取所有任务状态）
@@ -129,7 +129,7 @@ class UserHandler(IMCPHandler):
         @mcp.tool("cancel_polling_task")
         def cancel_polling_task_tool(email: str) -> str:
             """
-            取消指定用户的轮询任务
+            App Store Connect 取消指定用户的轮询任务
 
             Args:
                 email (str): 要取消轮询任务的用户邮箱地址
@@ -145,7 +145,7 @@ class UserHandler(IMCPHandler):
         @mcp.tool("remove_team_member")
         def remove_team_member_tool(email: str) -> str:
             """
-            从App Store Connect团队中移除指定成员
+            从 App Store Connect 团队中移除指定成员
 
             Args:
                 email (str): 要移除的团队成员邮箱地址
@@ -164,7 +164,7 @@ class UserHandler(IMCPHandler):
         @mcp.tool("remove_user_completely")
         def remove_user_completely_tool(email: str, app_name: str) -> str:
             """
-            完全移除用户（同时从团队和TestFlight中移除）
+            App Store Connect 完全移除用户（同时从团队和TestFlight中移除）
 
             Args:
                 email (str): 要移除的用户邮箱地址
@@ -183,7 +183,7 @@ class UserHandler(IMCPHandler):
 
         @mcp.resource("appstore://team-members")
         def get_team_members_resource() -> str:
-            """获取团队成员资源"""
+            """App Store Connect 获取团队成员资源"""
             try:
                 members = self.get_team_members()
                 return f"团队成员列表:\n" + "\n".join([f"- {m.email} ({m.full_name})" for m in members])
@@ -192,7 +192,7 @@ class UserHandler(IMCPHandler):
 
         @mcp.resource("appstore://invitations")
         def get_invitations_resource() -> str:
-            """获取邀请列表资源"""
+            """App Store Connect 获取邀请列表资源"""
             try:
                 invitations = self.get_user_invitations()
                 if not invitations:

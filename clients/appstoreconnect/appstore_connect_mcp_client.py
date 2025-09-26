@@ -10,7 +10,7 @@ import jwt
 import requests
 
 from .models import AppStoreConnectConfig
-from ..i_mcp_client import IMCPClient
+from ..mcp_client_interface import IMCPClient
 
 
 class AppStoreConnectMCPClient(IMCPClient):

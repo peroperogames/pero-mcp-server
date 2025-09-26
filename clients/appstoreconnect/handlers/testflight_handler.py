@@ -5,7 +5,7 @@ App Store Connect TestFlight处理器 - 负责测试组和测试者管理
 from typing import Any, List, Dict, Optional
 
 from ..models import BetaGroup, BetaTester
-from ...i_mcp_handler import IMCPHandler
+from ...mcp_handler_interface import IMCPHandler
 
 
 class TestFlightHandler(IMCPHandler):
@@ -15,7 +15,7 @@ class TestFlightHandler(IMCPHandler):
         self.client = client
 
     def register_tools(self, mcp: Any) -> None:
-        """注册TestFlight相关工具"""
+        """注册 AppStore TestFlight相关工具"""
 
         @mcp.tool("get_beta_groups")
         def get_beta_groups_tool(app_name: str) -> str:
@@ -48,7 +48,7 @@ class TestFlightHandler(IMCPHandler):
         @mcp.tool("get_beta_testers")
         def get_beta_testers_tool(app_name: str) -> str:
             """
-            获取指定应用的TestFlight测试者列表
+            获取 AppStore 指定应用的TestFlight测试者列表
 
             Args:
                 app_name (str): 应用名称，用于查找对应的应用
@@ -75,7 +75,7 @@ class TestFlightHandler(IMCPHandler):
 
         @mcp.tool("remove_testflight_tester")
         def remove_testflight_tester_tool(email: str, app_name: str) -> str:
-            """从TestFlight测试组中移除测试者"""
+            """AppStore 从TestFlight测试组中移除测试者"""
             try:
                 self.remove_beta_tester(email, app_name)
                 return f"已成功从应用 {app_name} 的TestFlight测试组中移除用户 {email}"
@@ -89,7 +89,7 @@ class TestFlightHandler(IMCPHandler):
 
         @mcp.resource("appstore://beta-testers")
         def get_beta_testers_resource() -> str:
-            """获取TestFlight测试者资源"""
+            """AppStore 获取TestFlight测试者资源"""
             try:
                 apps = self.client.handlers["AppHandler"].get_apps()
                 if not apps:

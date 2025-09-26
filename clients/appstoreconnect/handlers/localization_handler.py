@@ -4,8 +4,8 @@ App Store Connect 本地化管理处理器 - 负责应用商店本地化内容�
 
 from typing import Any, List, Optional, Dict
 
-from ...i_mcp_handler import IMCPHandler
 from ..models import AppStoreVersionLocalization, AppInfoLocalization, Screenshot
+from ...mcp_handler_interface import IMCPHandler
 
 
 class LocalizationHandler(IMCPHandler):
@@ -20,7 +20,7 @@ class LocalizationHandler(IMCPHandler):
         @mcp.tool("get_app_localizations")
         def get_app_localizations_tool(app_id: str) -> str:
             """
-            获取指定应用的本地化信息
+            获取 AppStore 指定应用的本地化信息
 
             Args:
                 app_id (str): 应用的唯一标识符ID
@@ -51,7 +51,7 @@ class LocalizationHandler(IMCPHandler):
         @mcp.tool("get_version_localizations")
         def get_version_localizations_tool(version_id: str) -> str:
             """
-            获取指定版本的本地化信息
+            获取 AppStore 指定版本的本地化信息
 
             Args:
                 version_id (str): 应用版本的唯一标识符ID
@@ -87,16 +87,16 @@ class LocalizationHandler(IMCPHandler):
 
         @mcp.tool("update_version_localization")
         def update_version_localization_tool(
-            localization_id: str,
-            description: Optional[str] = None,
-            keywords: Optional[str] = None,
-            whats_new: Optional[str] = None,
-            promotional_text: Optional[str] = None,
-            marketing_url: Optional[str] = None,
-            support_url: Optional[str] = None
+                localization_id: str,
+                description: Optional[str] = None,
+                keywords: Optional[str] = None,
+                whats_new: Optional[str] = None,
+                promotional_text: Optional[str] = None,
+                marketing_url: Optional[str] = None,
+                support_url: Optional[str] = None
         ) -> str:
             """
-            更新指定版本的本地化信息
+            更新 AppStore 指定版本的本地化信息
 
             Args:
                 localization_id (str): 本地化记录的唯一标识符ID
@@ -153,7 +153,7 @@ class LocalizationHandler(IMCPHandler):
         @mcp.tool("get_app_screenshots")
         def get_app_screenshots_tool(localization_id: str) -> str:
             """
-            获取指定本地化版本的应用截图列表
+            获取 AppStore 指定本地化版本的应用截图列表
 
             Args:
                 localization_id (str): 本地化记录的唯一标识符ID
@@ -250,7 +250,7 @@ class LocalizationHandler(IMCPHandler):
 
         @mcp.resource("appstore://localization/supported")
         def get_supported_locales_resource() -> str:
-            """获取支持的本地化语言资源"""
+            """获取 AppStore 支持的本地化语言资源"""
             locales = self.get_supported_locales()
             return f"支持的语言/地区 ({len(locales)} 个):\n" + "\n".join([f"- {locale}" for locale in sorted(locales)])
 
@@ -259,10 +259,10 @@ class LocalizationHandler(IMCPHandler):
 
         @mcp.prompt("appstore_localization")
         def appstore_localization_prompt(
-            operation: str = "",
-            app_id: str = "",
-            locale: str = "",
-            content_type: str = ""
+                operation: str = "",
+                app_id: str = "",
+                locale: str = "",
+                content_type: str = ""
         ) -> str:
             """App Store Connect本地化管理提示"""
             return f"""App Store Connect 本地化管理助手

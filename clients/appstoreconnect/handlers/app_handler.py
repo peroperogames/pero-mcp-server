@@ -5,7 +5,7 @@ App Store Connect 应用管理处理器 - 负责应用相关操作
 from typing import Any, List, Optional, Dict, Union
 
 from ..models import App
-from ...i_mcp_handler import IMCPHandler
+from ...mcp_handler_interface import IMCPHandler
 
 
 class AppHandler(IMCPHandler):
@@ -48,7 +48,7 @@ class AppHandler(IMCPHandler):
         @mcp.tool("get_app_info")
         def get_app_info_tool(app_id: str, include_details: bool = False) -> str:
             """
-            获取指定应用的详细信息
+            获取 AppStore 指定应用的详细信息
 
             Args:
                 app_id (str): 应用的唯一标识符ID
@@ -84,7 +84,7 @@ class AppHandler(IMCPHandler):
         @mcp.tool("get_app_versions")
         def get_app_versions_tool(app_id: str, limit: int = 10) -> str:
             """
-            获取指定应用的版本列表
+            获取 AppStore 指定应用的版本列表
 
             Args:
                 app_id (str): 应用的唯一标识符ID
@@ -115,7 +115,7 @@ class AppHandler(IMCPHandler):
         @mcp.tool("find_app_by_bundle_id")
         def find_app_by_bundle_id_tool(bundle_id: str) -> str:
             """
-            根据Bundle ID查找指定的应用
+            AppStore 根据Bundle ID查找指定的应用
 
             Args:
                 bundle_id (str): 应用的Bundle标识符，格式通常为com.company.appname
@@ -141,7 +141,7 @@ class AppHandler(IMCPHandler):
         @mcp.tool("get_app_builds")
         def get_app_builds_tool(app_id: str, limit: int = 10) -> str:
             """
-            获取指定应用的构建（Build）列表
+            获取指定 AppStore 应用的构建（Build）列表
 
             Args:
                 app_id (str): 应用的唯一标识符ID
@@ -175,7 +175,7 @@ class AppHandler(IMCPHandler):
 
         @mcp.resource("appstore://apps")
         def get_apps_resource() -> str:
-            """获取应用列表资源"""
+            """获取 AppStore 应用列表资源"""
             try:
                 apps = self.get_apps()
                 return f"应用列表:\n" + "\n".join(
@@ -185,7 +185,7 @@ class AppHandler(IMCPHandler):
 
         @mcp.resource("appstore://apps/ios")
         def get_ios_apps_resource() -> str:
-            """获取iOS应用列表资源"""
+            """获取 AppStore 应用列表资源"""
             try:
                 apps = self.get_apps()
                 return f"iOS应用列表:\n" + "\n".join([f"- {app.name} ({app.bundle_id})" for app in apps])
@@ -193,7 +193,7 @@ class AppHandler(IMCPHandler):
                 return f"获取iOS应用列表失败: {str(e)}"
 
     def register_prompts(self, mcp: Any) -> None:
-        """注册应用管理相关提示"""
+        """注册 AppStore 应用管理相关提示"""
 
         @mcp.prompt("appstore_app_management")
         def appstore_app_management_prompt(

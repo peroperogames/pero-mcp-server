@@ -9,7 +9,7 @@ from typing import Optional
 import paramiko
 
 from .models import SSHConfig
-from ..i_mcp_client import IMCPClient
+from ..mcp_client_interface import IMCPClient
 
 
 class SSHMCPClient(IMCPClient):

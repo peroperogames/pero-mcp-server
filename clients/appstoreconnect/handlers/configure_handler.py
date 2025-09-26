@@ -4,7 +4,7 @@ App Store Connect 配置处理器 - 负责配置管理
 
 from typing import Any
 
-from ...i_mcp_handler import IMCPHandler
+from ...mcp_handler_interface import IMCPHandler
 
 
 class ConfigureHandler(IMCPHandler):
